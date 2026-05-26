@@ -223,6 +223,6 @@ VALUES (
     'Admin',
     'Système',
     'admin@smartcampus.fr',
-    '$2y$12$exampleHashReplaceWithRealBcrypt',
+    '$2b$10$gnpdq8IPXCK/5CWHEIXNrOm0g1vab7L1asIvPE482.HoztTwqYjJm',
     (SELECT id FROM roles WHERE nom = 'admin')
 );

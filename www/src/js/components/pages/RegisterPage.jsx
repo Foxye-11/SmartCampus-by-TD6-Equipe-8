@@ -17,6 +17,18 @@ function RegisterPage(props) {
   const [success, setSuccess]       = useState('');
   const [loading, setLoading]       = useState(false);
 
+  // Calcule l'URL d'un endpoint API en s'adaptant au contexte WAMP
+  // (sous-dossier dans htdocs) ou racine.
+  function apiUrl(endpoint) {
+    let p = window.location.pathname; // ex: /SmartCampus.../www/src/index.html
+    // On retire le nom de fichier final
+    const lastSlash = p.lastIndexOf('/');
+    if (lastSlash >= 0) p = p.substring(0, lastSlash + 1);
+    // Si on est dans .../src/ on remonte d'un cran pour arriver dans .../www/
+    if (p.endsWith('/src/')) p = p.substring(0, p.length - 4);
+    return p + 'api/' + endpoint;
+  }
+
   // Charge la liste des departements (silencieux si endpoint protege)
   useEffect(() => {
     (async () => {
@@ -24,19 +36,27 @@ function RegisterPage(props) {
         if (api && typeof api.getDepartements === 'function') {
           const res = await api.getDepartements();
           if (res && res.ok && Array.isArray(res.data)) setDeps(res.data);
+        } else {
+          // Fallback fetch direct
+          const url = apiUrl('cours.php?action=departements');
+          const r = await fetch(url, { credentials: 'include' });
+          if (r.ok) {
+            const d = await r.json();
+            if (Array.isArray(d)) setDeps(d);
+          }
         }
-      } catch (_) { /* on ignore : champ optionnel */ }
+      } catch (_) { /* champ optionnel */ }
     })();
   }, []);
 
-  // Appel a /api/register.php avec fallback fetch direct
-  // au cas ou api.register n'est pas defini dans api.js
+  // Inscription : essaie api.register, sinon fetch direct avec URL calculee
   async function callRegister(payload) {
     if (api && typeof api.register === 'function') {
       return await api.register(payload);
     }
-    // Fallback : fetch direct
-    const res = await fetch('/api/register.php', {
+    const url = apiUrl('register.php');
+    console.log('[register] POST URL =', url);
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

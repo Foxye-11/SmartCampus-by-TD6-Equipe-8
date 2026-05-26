@@ -1,35 +1,51 @@
-version: '3.8'
-
 services:
   php-apache:
-    build: .         
-    ports:
-      - "8080:82" // Changed from 80 to 82 to avoid conflict with phpmyadmin
+    build: .
+    container_name: php-apache
+    restart: unless-stopped
+    # Plus besoin d'exposer le port publiquement, Nginx s'en charge
+    expose:
+      - "80"
     volumes:
       - ./www:/var/www/html
     depends_on:
       - mysql
+    networks:
+      - web         # ← accessible par Nginx
+      - site_internal
 
   mysql:
     image: mysql:8.0
+    container_name: site-mysql
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: VivePHP
-      MYSQL_DATABASE: SmartCampusDB
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      - site_internal   # ← jamais exposé à l'extérieur
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    restart: unless-stopped
     ports:
-      - "8083:80"
+      - "127.0.0.1:8083:80"   # ← accessible uniquement en local (SSH/WireGuard)
     environment:
       PMA_HOST: mysql
       PMA_USER: root
-      PMA_PASSWORD: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - site_internal
+
+networks:
+  web:
+    external: true        # ← réseau partagé avec Nginx
+  site_internal:
+    driver: bridge        # ← réseau interne, mysql jamais exposé
 
 volumes:
   mysql_data:

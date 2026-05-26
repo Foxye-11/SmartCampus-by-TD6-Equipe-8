@@ -1,11 +1,14 @@
-function LoginPage({ onLogin, onSwitchToRegister }) {
+function LoginPage(props) {
   const { useState } = React;
   const [email, setEmail]     = useState('');
   const [mdp, setMdp]         = useState('');
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async e => {
+  const onLogin = props.onLogin;
+  const onSwitchToRegister = props.onSwitchToRegister;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -15,54 +18,47 @@ function LoginPage({ onLogin, onSwitchToRegister }) {
     else setError(data.erreur || 'Identifiants incorrects.');
   };
 
+  const goRegister = (e) => {
+    e.preventDefault();
+    if (onSwitchToRegister) onSwitchToRegister();
+  };
+
   return (
     <div className="login-page">
       <div className="login-left">
         <div className="login-logo">Smart<span>Campus</span></div>
-        <div className="login-tagline">Gérer · Apprendre · Réussir</div>
-        <h1 className="login-headline">
-          La gestion académique<br /><em>de notre époque</em>
-        </h1>
-        <p className="login-desc">
-          Une plateforme centralisée pour les étudiants, enseignants
-          et l'administration. Accédez à vos cours, notes et emploi du temps
-          en quelques secondes.
-        </p>
+        <div className="login-tagline">Gerer - Apprendre - Reussir</div>
+        <h1 className="login-headline">La gestion academique<br/><em>de notre epoque</em></h1>
+        <p className="login-desc">Une plateforme centralisee pour les etudiants, enseignants et l'administration.</p>
       </div>
       <div className="login-right">
         <h2>Connexion</h2>
-        <p className="sub">Entrez vos identifiants pour accéder à la plateforme.</p>
+        <p className="sub">Entrez vos identifiants pour acceder a la plateforme.</p>
         {error && <Alert type="error">{error}</Alert>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Adresse email</label>
-            <input
-              type="email" value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="prenom.nom@univ.fr"
-              required autoFocus
-            />
+            <input type="email" value={email}
+                   onChange={(e) => setEmail(e.target.value)}
+                   placeholder="prenom.nom@univ.fr" required autoFocus />
           </div>
           <div className="form-group">
             <label>Mot de passe</label>
-            <input
-              type="password" value={mdp}
-              onChange={e => setMdp(e.target.value)}
-              placeholder="••••••••" required
-            />
+            <input type="password" value={mdp}
+                   onChange={(e) => setMdp(e.target.value)}
+                   placeholder="********" required />
           </div>
-          <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
-            {loading ? 'Connexion…' : 'Se connecter'}
+          <button type="submit" className="btn btn-primary btn-full"
+                  disabled={loading} style={{ marginTop: 8 }}>
+            {loading ? 'Connexion...' : 'Se connecter'}
           </button>
-
-          <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14 }}>
+          <div style={{ textAlign: 'center', marginTop: 16, fontSize: 14, color: '#555' }}>
             Pas encore de compte ?{' '}
-            <a href="#"
-               onClick={e => { e.preventDefault(); onSwitchToRegister && onSwitchToRegister(); }}
-               style={{ color: 'var(--color-primary, #1f4e79)', fontWeight: 600 }}>
-              S'inscrire
+            <a href="#" onClick={goRegister}
+               style={{ color: '#1f4e79', fontWeight: 600, textDecoration: 'underline' }}>
+              S inscrire
             </a>
-          </p>
+          </div>
         </form>
       </div>
     </div>

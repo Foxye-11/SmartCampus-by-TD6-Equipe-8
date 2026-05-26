@@ -223,5 +223,6 @@ VALUES (
     'Admin',
     'Système',
     'admin@smartcampus.fr',
-    '',
-    (SELECT id FROM roles WHERE nom = 
+    '$2y$12$exampleHashReplaceWithRealBcrypt',
+    (SELECT id FROM roles WHERE nom = 'admin')
+);

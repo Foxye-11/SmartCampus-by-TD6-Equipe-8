@@ -48,6 +48,26 @@ class EtudiantController {
 
     public function creer(array $data): array {
         Auth::exiger('admin');
+        return $this->creerInterne($data);
+    }
+
+    // -----------------------------------------------
+    // Inscription publique (auto-inscription d'un étudiant)
+    // PAS d'Auth::exiger : route publique
+    // -----------------------------------------------
+    public function inscriptionPublique(array $data): array {
+        // Validation supplémentaire pour l'inscription publique :
+        // le mot de passe doit être fourni par l'utilisateur
+        if (empty($data['mot_de_passe']) || strlen($data['mot_de_passe']) < 8) {
+            return ['succes' => false, 'erreurs' => ['Le mot de passe doit contenir au moins 8 caractères.']];
+        }
+        return $this->creerInterne($data);
+    }
+
+    // -----------------------------------------------
+    // Création réelle (factorisée entre creer() et inscriptionPublique())
+    // -----------------------------------------------
+    private function creerInterne(array $data): array {
         $erreurs = $this->valider($data);
         if (!empty($erreurs)) return ['succes' => false, 'erreurs' => $erreurs];
 

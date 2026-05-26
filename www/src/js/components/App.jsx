@@ -15,6 +15,7 @@ const PAGE_TITLES = {
 
 function App() {
   const [user, setUser]         = useState(() => Auth.get());
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
   const [page, setPage]         = useState(() => Router.current() || 'dashboard');
   const [notifs, setNotifs]     = useState([]);
   const [unreadNotifs, setUN]   = useState(0);
@@ -67,7 +68,22 @@ function App() {
     setUN(0);
   };
 
-  if (!user) return <LoginPage onLogin={handleLogin} />;
+  if (!user) {
+    if (authMode === 'register') {
+      return (
+        <RegisterPage
+          onRegistered={() => setAuthMode('login')}
+          onSwitchToLogin={() => setAuthMode('login')}
+        />
+      );
+    }
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onSwitchToRegister={() => setAuthMode('register')}
+      />
+    );
+  }
 
   const renderPage = () => {
     switch (page) {

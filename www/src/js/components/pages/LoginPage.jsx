@@ -1,4 +1,4 @@
-function LoginPage({ onLogin }) {
+function LoginPage({ onLogin, onSwitchToRegister }) {
   const { useState } = React;
   const [email, setEmail]     = useState('');
   const [mdp, setMdp]         = useState('');
@@ -54,6 +54,15 @@ function LoginPage({ onLogin }) {
           <button type="submit" className="btn btn-primary btn-full" disabled={loading} style={{ marginTop: 8 }}>
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
+
+          <p style={{ textAlign: 'center', marginTop: 16, fontSize: 14 }}>
+            Pas encore de compte ?{' '}
+            <a href="#"
+               onClick={e => { e.preventDefault(); onSwitchToRegister && onSwitchToRegister(); }}
+               style={{ color: 'var(--color-primary, #1f4e79)', fontWeight: 600 }}>
+              S'inscrire
+            </a>
+          </p>
         </form>
       </div>
     </div>

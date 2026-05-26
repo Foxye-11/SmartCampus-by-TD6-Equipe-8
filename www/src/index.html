@@ -12,17 +12,42 @@
 <body>
   <div id="root"></div>
 
-  <!-- React + Babel -->
+  <!-- React 18 + Babel standalone -->
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Couches utilitaires (plain JS, chargées avant React) -->
+  <!-- Couches utilitaires JS (plain JS, avant React) -->
   <script src="js/auth.js"></script>
   <script src="js/router.js"></script>
   <script src="js/api.js"></script>
 
-  <!-- Application React -->
+  <!-- Composants utilitaires (chargés en premier car utilisés partout) -->
+  <script type="text/babel" src="js/components/utils/Icons.jsx"></script>
+  <script type="text/babel" src="js/components/utils/Spinner.jsx"></script>
+  <script type="text/babel" src="js/components/utils/Alert.jsx"></script>
+  <script type="text/babel" src="js/components/utils/Modal.jsx"></script>
+  <script type="text/babel" src="js/components/utils/EmptyState.jsx"></script>
+
+  <!-- Layout -->
+  <script type="text/babel" src="js/components/layout/Sidebar.jsx"></script>
+  <script type="text/babel" src="js/components/layout/Topbar.jsx"></script>
+
+  <!-- Pages -->
+  <script type="text/babel" src="js/components/pages/LoginPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/Dashboard.jsx"></script>
+  <script type="text/babel" src="js/components/pages/EtudiantsPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/EnseignantsPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/CoursPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/InscriptionsPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/NotesPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/EmploiDuTempsPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/PresencesPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/MessagesPage.jsx"></script>
+  <script type="text/babel" src="js/components/pages/SallesPage.jsx"></script>
+
+  <!-- App principal (en tout dernier, utilise tous les composants ci-dessus) -->
   <script type="text/babel" src="js/components/App.jsx"></script>
+
 </body>
 </html>

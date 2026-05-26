@@ -4,7 +4,7 @@ services:
   php-apache:
     build: .         
     ports:
-      - "8080:82"
+      - "8080:82" // Changed from 80 to 82 to avoid conflict with phpmyadmin
     volumes:
       - ./www:/var/www/html
     depends_on:

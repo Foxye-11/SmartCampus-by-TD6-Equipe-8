@@ -108,4 +108,37 @@ class EnseignantController {
     public function supprimer(int $id): array {
         Auth::exiger('admin');
         $ens = $this->obtenir($id);
-        if (!$ens
+        if (!$ens) return ['succes' => false, 'erreurs' => ['Enseignant introuvable.']];
+        $this->pdo->prepare('UPDATE utilisateurs SET actif = 0 WHERE id = :uid')
+                  ->execute([':uid' => $ens['utilisateur_id']]);
+        return ['succes' => true];
+    }
+
+    public function coursDEnseignant(int $id): array {
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id, c.code, c.intitule, c.credits, s.libelle AS semestre,
+                    (SELECT COUNT(*) FROM inscriptions i
+                     WHERE i.cours_id = c.id AND i.statut = "active") AS inscrits
+             FROM cours c
+             JOIN semestres s ON s.id = c.semestre_id
+             WHERE c.enseignant_id = :id
+             ORDER BY s.libelle, c.intitule'
+        );
+        $stmt->execute([':id' => $id]);
+        return $stmt->fetchAll();
+    }
+
+    private function valider(array $data): array {
+        $erreurs = [];
+        if (empty($data['nom']))    $erreurs[] = 'Nom requis.';
+        if (empty($data['prenom'])) $erreurs[] = 'Prénom requis.';
+        if (empty($data['email']) || !filter_var($data['email'], FILTER_VALIDATE_EMAIL))
+            $erreurs[] = 'Email valide requis.';
+        else {
+            $stmt = $this->pdo->prepare('SELECT id FROM utilisateurs WHERE email = :e');
+            $stmt->execute([':e' => strtolower(trim($data['email']))]);
+            if ($stmt->fetch()) $erreurs[] = 'Cet email est déjà utilisé.';
+        }
+        return $erreurs;
+    }
+}

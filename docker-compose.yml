@@ -14,7 +14,7 @@ services:
     image: mysql:8.0
     environment:
       MYSQL_ROOT_PASSWORD: VivePHP
-      MYSQL_DATABASE: EuropeCigarDB
+      MYSQL_DATABASE: SmartCampusDB
       MYSQL_USER: user
       MYSQL_PASSWORD: password
     ports:

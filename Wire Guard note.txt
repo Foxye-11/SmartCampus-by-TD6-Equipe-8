@@ -1,0 +1,140 @@
+Wire Guard note :
+==============================
+scan réseau local
+==============================
+
+# lister les IP sur le réseau local :
+
+# Scanner le réseau local
+nmap -sn 192.168.1.0/24
+
+==============================
+redirection du port de la box
+==============================
+
+# dans le navigateur, pour configurer la box : 
+
+http://192.168.1.1
+
+# config de la redirection :
+
+Protocole : UDP
+Port externe : 51820
+Port interne : 51820
+Equipement : 192.168.1.38 (ip de mon serveur sur le reseau local)
+
+===========================================
+installation et configuration de WireGuard
+===========================================
+# installer Wire Guard :
+
+sudo apt update && sudo apt install wireguard -y
+
+# générer les clés serveurs :
+
+cd /etc/wireguard
+umask 077
+wg genkey | tee server_private.key | wg pubkey > server_public.key
+cat server_private.key
+cat server_public.key
+
+# création du dossier
+
+mkdir -p ~/wireguard && cd ~/wireguard
+nano docker-compose.yml
+
+# docker-compose.yml : 
+
+services:
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: duckdns
+    environment:
+      - SUBDOMAINS=smartcampus-by-rhr
+      - TOKEN=71c114b8-ccea-4060-9162-24d8e7f37e31
+      - TZ=Europe/Paris
+    restart: unless-stopped
+
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Paris
+      - SERVERURL=smartcampus-by-rhr.duckdns.org
+      - SERVERPORT=51820
+      - PEERS=laptop,iphone
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0/24
+      - ALLOWEDIPS=0.0.0.0/0
+      - PERSISTENTKEEPALIVE_PEERS=all
+    volumes:
+      - ./config:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+# activer le routage IP
+
+echo "net.ipv4.ip_forward=1" | tee -a /etc/sysctl.conf
+sysctl -p
+
+# lancer le conteneur :
+
+docker compose up -d
+
+# log de wireguard :
+
+docker logs wireguard
+
+# QR-Code IPhone :
+
+docker exec -it wireguard /app/show-peer iPhone
+
+# QR Code laptop
+
+docker exec -it wireguard /app/show-peer laptop
+
+# aussi disponible sous format de fichier ici :
+
+ls ~/wireguard/config/peer_iphone/
+ls ~/wireguard/config/peer_laptop/
+
+cat ~/wireguard/config/peer_laptop/peer_laptop.conf
+
+# pour tester l'accès de l'app sur le port 8080 (a faire sur le client) :
+
+http://10.13.13.1:8080
+
+# vérification que le routage est bien activé (doit retourner 1) :
+
+sysctl net.ipv4.ip_forward
+
+sinon : echo "net.ipv4.ip_forward=1" | tee -a /etc/sysctl.conf
+sysctl -p
+
+# ajout manuel de règles de transfert :
+
+iptables -A FORWARD -i wg0 -j ACCEPT
+iptables -A FORWARD -o wg0 -j ACCEPT
+
+# rendre ces règles permanentes (sinon se perd au reboot du serveur) :
+
+apt install iptables-persistent -y
+netfilter-persistent save
+
+
+
+
+
+
+
+
+
+

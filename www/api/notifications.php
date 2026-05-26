@@ -2,8 +2,8 @@
 // api/notifications.php
 
 header('Content-Type: application/json');
-require_once DIR . '/../auth/Auth.php';
-require_once DIR . '/../controllers/NotificationController.php';
+require_once __DIR__ . '/../auth/Auth.php';
+require_once __DIR__ . '/../controllers/NotificationController.php';
 
 Auth::exiger();
 

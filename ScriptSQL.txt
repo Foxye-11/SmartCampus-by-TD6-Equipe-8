@@ -105,7 +105,7 @@ CREATE TABLE cours (
     notes_verrouillees TINYINT(1) NOT NULL DEFAULT 0,
     CONSTRAINT fk_cours_departement FOREIGN KEY (departement_id) REFERENCES departements(id),
     CONSTRAINT fk_cours_semestre FOREIGN KEY (semestre_id) REFERENCES semestres(id),
-    CONSTRAINT fk_cours_enseignant FOREIGN KEY (enseignant_id) REFERENCES enseignants(id) ON SET NULL
+    CONSTRAINT fk_cours_enseignant FOREIGN KEY (enseignant_id) REFERENCES enseignants(id) ON DELETE SET NULL
 );
 
 -- ============================================
@@ -131,7 +131,7 @@ CREATE TABLE sessions_cours (
     heure_fin TIME NOT NULL,
     date_specifique DATE,                   -- NULL = récurrent hebdo, sinon date précise
     CONSTRAINT fk_session_cours FOREIGN KEY (cours_id) REFERENCES cours(id) ON DELETE CASCADE,
-    CONSTRAINT fk_session_salle FOREIGN KEY (salle_id) REFERENCES salles(id) ON SET NULL
+    CONSTRAINT fk_session_salle FOREIGN KEY (salle_id) REFERENCES salles(id) ON DELETE SET NULL
 );
 
 -- ============================================

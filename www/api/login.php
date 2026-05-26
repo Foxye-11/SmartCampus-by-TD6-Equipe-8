@@ -1,5 +1,5 @@
 <?php
-// api/login.php  — Point d'entrée API JSON
+// api/login.php
 
 header('Content-Type: application/json');
 require_once __DIR__ . '/../auth/Auth.php';
@@ -10,18 +10,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$donnees = json_decode(file_get_contents('php://input'), true);
-$email      = $donnees['email']      ?? '';
+$donnees    = json_decode(file_get_contents('php://input'), true);
+$email      = $donnees['email']       ?? '';
 $motDePasse = $donnees['mot_de_passe'] ?? '';
 
 $resultat = Auth::login($email, $motDePasse);
 
 if ($resultat['succes']) {
     echo json_encode([
-        'succes' => true,
-        'role'   => $resultat['role'],
-        'nom'    => $_SESSION['user_nom'],
-        'prenom' => $_SESSION['user_prenom'],
+        'succes'        => true,
+        'role'          => $resultat['role'],
+        'nom'           => $_SESSION['user_nom'],
+        'prenom'        => $_SESSION['user_prenom'],
+        'email'         => $_SESSION['user_email'],
+        // IDs métier selon le rôle (null si non applicable)
+        'etudiant_id'   => $_SESSION['etudiant_id']   ?? null,
+        'enseignant_id' => $_SESSION['enseignant_id'] ?? null,
     ]);
 } else {
     http_response_code(401);

@@ -197,52 +197,12 @@ function CoursPage({ user }) {
               <label>Enseignant responsable</label>
               <select value={form.enseignant_id || ''} onChange={e => setForm(f => ({ ...f, enseignant_id: e.target.value }))}>
                 <option value="">— Non assigné —</option>
-                {enseignants.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}</option>)}
+                {enseignants.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom}{e.departement ? ` — ${e.departement}` : ''}</option>)}
               </select>
             </div>
-            <div className="form-group"><label>Description</label><textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
 
             {modal === 'create' && (
               <>
-                {/* ----- Planification d'une première séance ----- */}
-                <div style={{ borderTop: '1px solid var(--cream-dark)', paddingTop: 12 }}>
-                  <strong style={{ color: 'var(--navy)', fontSize: '.92rem' }}>Première séance (optionnel)</strong>
-                  <p style={{ color: 'var(--text-light)', fontSize: '.8rem', margin: '4px 0 10px' }}>
-                    Salle, date et horaire. Les conflits (salle, enseignant, groupe) sont vérifiés automatiquement.
-                  </p>
-                  <div className="form-group">
-                    <label>Salle</label>
-                    <input placeholder="Rechercher une salle (nom, bâtiment)…" value={salleSearch}
-                           onChange={e => setSalleSearch(e.target.value)} style={{ marginBottom: 6 }} />
-                    <select value={form.salle_id || ''} onChange={e => setForm(f => ({ ...f, salle_id: e.target.value }))}>
-                      <option value="">— Aucune salle —</option>
-                      {sallesFiltrees.map(s => (
-                        <option key={s.id} value={s.id}>{s.nom} · {s.batiment || '—'} · {s.capacite} pl. · {s.type_salle}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                    <div className="form-group">
-                      <label>Date</label>
-                      <input type="date" value={form.date_specifique || ''} onChange={e => setForm(f => ({ ...f, date_specifique: e.target.value }))} />
-                    </div>
-                    <div className="form-group">
-                      <label>Heure début</label>
-                      <select value={form.heure_debut || ''} onChange={e => setForm(f => ({ ...f, heure_debut: e.target.value }))}>
-                        <option value="">—</option>
-                        {heures.map(h => <option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Heure fin</label>
-                      <select value={form.heure_fin || ''} onChange={e => setForm(f => ({ ...f, heure_fin: e.target.value }))}>
-                        <option value="">—</option>
-                        {heures.map(h => <option key={h} value={h}>{h}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
                 {/* ----- Inscription des groupes de TD ----- */}
                 <div style={{ borderTop: '1px solid var(--cream-dark)', paddingTop: 12 }}>
                   <strong style={{ color: 'var(--navy)', fontSize: '.92rem' }}>Groupes de TD inscrits</strong>
@@ -291,6 +251,8 @@ function CoursPage({ user }) {
                 </div>
               </>
             )}
+
+            <div className="form-group"><label>Description</label><textarea value={form.description || ''} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
           </div>
         </Modal>
       )}

@@ -5,7 +5,7 @@ const API_BASE = '/api';
 const api = {
   async _request(method, endpoint, body = null, params = {}) {
     const url = new URL(API_BASE + endpoint, window.location.origin);
-    Object.entries(params).forEach(([k, v]) => { if (v !== null && v !== '') url.searchParams.append(k, v); });
+    Object.entries(params).forEach(([k, v]) => { if (v != null && v !== '') url.searchParams.append(k, v); });
     const options = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' };
     if (body) options.body = JSON.stringify(body);
     const res = await fetch(url, options);

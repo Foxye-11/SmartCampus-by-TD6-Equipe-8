@@ -16,7 +16,12 @@ switch ($method) {
         } elseif ($role === 'enseignant') {
             echo json_encode($controller->emploiEnseignant($_SESSION['enseignant_id']));
         } else {
-            echo json_encode($controller->emploiComplet());
+            $filtres = [
+                'cours_id'      => $_GET['cours_id']      ?? '',
+                'enseignant_id' => $_GET['enseignant_id'] ?? '',
+                'etudiant_id'   => $_GET['etudiant_id']   ?? '',
+            ];
+            echo json_encode($controller->emploiComplet($filtres));
         }
         break;
     case 'POST':

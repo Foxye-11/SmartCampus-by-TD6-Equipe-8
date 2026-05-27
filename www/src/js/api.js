@@ -46,6 +46,7 @@ const api = {
   getSemestres: () => api.get('/cours.php', { action: 'semestres' }),
   getDepartements: () => api.get('/cours.php', { action: 'departements' }),
   getSessionsCours: (id) => api.get('/cours.php', { id, action: 'sessions' }),
+  getCoursGroupes:  (id) => api.get('/cours.php', { id, action: 'groupes' }),
 
   // Inscriptions
   coursDisponibles: (eid) => api.get('/inscriptions.php', { action: 'disponibles', id: eid }),
@@ -71,8 +72,11 @@ const api = {
   enregistrerPresences: (d) => api.post('/presences.php', d),
   modifierPresence:  (id, statut) => api.put(`/presences.php?id=${id}`, { statut }),
 
+  // Références (groupes de TD)
+  getGroupesTD: (niveau) => api.get('/references.php', { action: 'groupes_td', niveau }),
+
   // Emploi du temps
-  getEmploiDuTemps: () => api.get('/emploi_du_temps.php'),
+  getEmploiDuTemps: (f) => api.get('/emploi_du_temps.php', f || {}),
   creerSession:     (d) => api.post('/emploi_du_temps.php', d),
   supprimerSession: (id) => api.delete(`/emploi_du_temps.php?id=${id}`),
 

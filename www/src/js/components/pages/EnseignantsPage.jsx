@@ -7,6 +7,9 @@ function EnseignantsPage() {
   const [form, setForm]               = useState({});
   const [error, setError]             = useState('');
 
+  // Écoles : simple liste fixe (attribut texte, pas de table dédiée)
+  const ecoles = ['École 1', 'École 2', 'École 3', 'École 4'];
+
   const load = async () => {
     setLoading(true);
     const [eRes, dRes] = await Promise.all([api.getEnseignants(), api.getDepartements()]);
@@ -45,7 +48,7 @@ function EnseignantsPage() {
           <div className="table-wrapper">
             <table>
               <thead>
-                <tr><th>Nom</th><th>Email</th><th>Grade</th><th>Département</th><th>Cours</th><th>Actions</th></tr>
+                <tr><th>Nom</th><th>Email</th><th>Grade</th><th>École</th><th>Département</th><th>Cours</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {enseignants.map(e => (
@@ -53,6 +56,7 @@ function EnseignantsPage() {
                     <td><strong>{e.prenom} {e.nom}</strong></td>
                     <td style={{ color: 'var(--text-mid)' }}>{e.email}</td>
                     <td><span className="badge badge-navy">{e.grade}</span></td>
+                    <td>{e.ecole || '—'}</td>
                     <td>{e.departement || '—'}</td>
                     <td><span className="badge badge-info">{e.nb_cours}</span></td>
                     <td>
@@ -106,14 +110,24 @@ function EnseignantsPage() {
                 <select value={form.grade || ''} onChange={e => setForm(f => ({ ...f, grade: e.target.value }))}>
                   {grades.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
+                <small style={{ color: 'var(--text-light)' }}>
+                  Rang académique de l'enseignant (statut/titre).
+                </small>
               </div>
               <div className="form-group">
-                <label>Département</label>
-                <select value={form.departement_id || ''} onChange={e => setForm(f => ({ ...f, departement_id: e.target.value }))}>
-                  <option value="">— Aucun —</option>
-                  {departements.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+                <label>École</label>
+                <select value={form.ecole || ''} onChange={e => setForm(f => ({ ...f, ecole: e.target.value }))}>
+                  <option value="">— Aucune —</option>
+                  {ecoles.map(ec => <option key={ec} value={ec}>{ec}</option>)}
                 </select>
               </div>
+            </div>
+            <div className="form-group">
+              <label>Département</label>
+              <select value={form.departement_id || ''} onChange={e => setForm(f => ({ ...f, departement_id: e.target.value }))}>
+                <option value="">— Aucun —</option>
+                {departements.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+              </select>
             </div>
           </div>
         </Modal>

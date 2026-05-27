@@ -14,6 +14,7 @@ switch ($method) {
         if ($action === 'semestres') { echo json_encode($controller->semestres()); break; }
         if ($action === 'departements') { echo json_encode($controller->departements()); break; }
         if ($action === 'sessions' && $id) { echo json_encode($controller->sessionsParCours($id)); break; }
+        if ($action === 'groupes' && $id) { echo json_encode($controller->groupesDuCours($id)); break; }
         if ($id) {
             $c = $controller->obtenir($id);
             if (!$c) { http_response_code(404); echo json_encode(['erreur'=>'Introuvable.']); break; }
@@ -21,7 +22,8 @@ switch ($method) {
         } else {
             $semestreId    = isset($_GET['semestre_id'])    ? (int)$_GET['semestre_id']    : null;
             $departementId = isset($_GET['departement_id']) ? (int)$_GET['departement_id'] : null;
-            echo json_encode($controller->lister($semestreId, $departementId));
+            $groupeTdId    = isset($_GET['groupe_td_id'])   ? (int)$_GET['groupe_td_id']   : null;
+            echo json_encode($controller->lister($semestreId, $departementId, $groupeTdId));
         }
         break;
     case 'POST':

@@ -50,6 +50,17 @@ CREATE TABLE salles (
 );
 
 -- ============================================
+-- TABLE : groupes_td (groupes de travaux dirigés, ex: ING1 TD03)
+-- ============================================
+CREATE TABLE groupes_td (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50) NOT NULL,            -- ex: 'TD03'
+    niveau VARCHAR(20) NOT NULL,         -- ex: 'ING1'
+    annee_scolaire VARCHAR(9) NOT NULL,  -- ex: '2025-2026'
+    UNIQUE KEY uq_groupe_td (niveau, nom, annee_scolaire)
+);
+
+-- ============================================
 -- TABLE : etudiants (extension de utilisateurs)
 -- ============================================
 CREATE TABLE etudiants (
@@ -57,10 +68,13 @@ CREATE TABLE etudiants (
     utilisateur_id INT UNSIGNED NOT NULL UNIQUE,
     numero_etudiant VARCHAR(20) NOT NULL UNIQUE,
     departement_id INT UNSIGNED,
+    ecole VARCHAR(100),                  -- attribut texte (ex: 'École 1')
+    groupe_td_id INT UNSIGNED,
     niveau VARCHAR(20) NOT NULL, -- 'L1','L2','L3','M1','M2','ING1','ING2'...
-    annee_scolaire VARCHAR(9) NOT NULL, -- ex: '2025-2026'
+    annee_scolaire VARCHAR(9) NOT NULL, -- ex: '2025-2026' (affichée sur le relevé de notes)
     CONSTRAINT fk_etudiant_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
-    CONSTRAINT fk_etudiant_departement FOREIGN KEY (departement_id) REFERENCES departements(id)
+    CONSTRAINT fk_etudiant_departement FOREIGN KEY (departement_id) REFERENCES departements(id),
+    CONSTRAINT fk_etudiant_groupe_td FOREIGN KEY (groupe_td_id) REFERENCES groupes_td(id)
 );
 
 -- ============================================
@@ -70,7 +84,8 @@ CREATE TABLE enseignants (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     utilisateur_id INT UNSIGNED NOT NULL UNIQUE,
     departement_id INT UNSIGNED,
-    grade VARCHAR(50), -- 'Maître de conférences', 'Professeur', etc.
+    ecole VARCHAR(100),                  -- attribut texte (ex: 'École 1')
+    grade VARCHAR(50), -- rang académique : 'Maître de conférences', 'Professeur', etc.
     CONSTRAINT fk_enseignant_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     CONSTRAINT fk_enseignant_departement FOREIGN KEY (departement_id) REFERENCES departements(id)
 );
@@ -117,6 +132,18 @@ CREATE TABLE prerequis (
     PRIMARY KEY (cours_id, prerequis_id),
     CONSTRAINT fk_prereq_cours FOREIGN KEY (cours_id) REFERENCES cours(id) ON DELETE CASCADE,
     CONSTRAINT fk_prereq_prerequis FOREIGN KEY (prerequis_id) REFERENCES cours(id) ON DELETE CASCADE
+);
+
+-- ============================================
+-- TABLE : cours_groupes (classe/groupe de TD affecté à un cours)
+-- Permet d'inscrire une classe entière et de filtrer les cours par TD.
+-- ============================================
+CREATE TABLE cours_groupes (
+    cours_id INT UNSIGNED NOT NULL,
+    groupe_td_id INT UNSIGNED NOT NULL,
+    PRIMARY KEY (cours_id, groupe_td_id),
+    CONSTRAINT fk_cg_cours  FOREIGN KEY (cours_id)     REFERENCES cours(id)      ON DELETE CASCADE,
+    CONSTRAINT fk_cg_groupe FOREIGN KEY (groupe_td_id) REFERENCES groupes_td(id) ON DELETE CASCADE
 );
 
 -- ============================================
@@ -216,6 +243,32 @@ INSERT INTO departements (nom, code) VALUES
     ('Mathématiques', 'MATH'),
     ('Génie Civil', 'GC'),
     ('Physique', 'PHY');
+
+INSERT INTO groupes_td (niveau, nom, annee_scolaire) VALUES
+    ('ING1','TD01','2025-2026'), ('ING1','TD02','2025-2026'),
+    ('ING1','TD03','2025-2026'), ('ING1','TD04','2025-2026'),
+    ('ING2','TD01','2025-2026'), ('ING2','TD02','2025-2026'),
+    ('ING2','TD03','2025-2026'), ('ING2','TD04','2025-2026'),
+    ('ING3','TD01','2025-2026'), ('ING3','TD02','2025-2026'),
+    ('L1','TD01','2025-2026'),   ('L1','TD02','2025-2026'),
+    ('L2','TD01','2025-2026'),   ('L2','TD02','2025-2026'),
+    ('L3','TD01','2025-2026'),   ('L3','TD02','2025-2026'),
+    ('M1','TD01','2025-2026'),   ('M2','TD01','2025-2026');
+
+-- Semestres S1 et S2 (indispensables pour créer un cours)
+INSERT INTO semestres (libelle, annee_scolaire, numero, date_debut, date_fin) VALUES
+    ('S1 2025-2026', '2025-2026', 1, '2025-09-01', '2026-01-31'),
+    ('S2 2025-2026', '2025-2026', 2, '2026-02-01', '2026-06-30');
+
+-- Salles de démonstration
+INSERT INTO salles (nom, capacite, batiment, type_salle, disponible) VALUES
+    ('A101', 40, 'Bâtiment A', 'cours', 1),
+    ('A102', 40, 'Bâtiment A', 'cours', 1),
+    ('B201', 30, 'Bâtiment B', 'tp', 1),
+    ('B202', 30, 'Bâtiment B', 'tp', 1),
+    ('Amphi Curie', 200, 'Bâtiment C', 'amphi', 1),
+    ('Amphi Newton', 150, 'Bâtiment C', 'amphi', 1),
+    ('S301', 25, 'Bâtiment S', 'seminaire', 1);
 
 -- Admin par défaut (mot de passe : Admin1234!)
 INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role_id)

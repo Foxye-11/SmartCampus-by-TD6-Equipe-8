@@ -14,14 +14,19 @@ class EtudiantController {
         Auth::exiger('admin', 'enseignant');
         $sql = 'SELECT et.id, et.numero_etudiant, et.niveau, et.annee_scolaire,
                        u.nom, u.prenom, u.email, u.actif,
-                       d.nom AS departement
+                       d.nom AS departement,
+                       et.ecole,
+                       et.groupe_td_id,
+                       CONCAT(g.niveau, " ", g.nom) AS groupe_td
                 FROM etudiants et
                 JOIN utilisateurs u ON u.id = et.utilisateur_id
                 LEFT JOIN departements d ON d.id = et.departement_id
+                LEFT JOIN groupes_td g ON g.id = et.groupe_td_id
                 WHERE 1=1';
         $params = [];
         if (!empty($filtres['niveau'])) { $sql .= ' AND et.niveau=:niveau'; $params[':niveau'] = $filtres['niveau']; }
         if (!empty($filtres['departement_id'])) { $sql .= ' AND et.departement_id=:did'; $params[':did'] = $filtres['departement_id']; }
+        if (!empty($filtres['groupe_td_id'])) { $sql .= ' AND et.groupe_td_id=:gtd'; $params[':gtd'] = $filtres['groupe_td_id']; }
         if (!empty($filtres['recherche'])) {
             $sql .= ' AND (u.nom LIKE :r OR u.prenom LIKE :r OR et.numero_etudiant LIKE :r OR u.email LIKE :r)';
             $params[':r'] = '%' . $filtres['recherche'] . '%';
@@ -70,15 +75,17 @@ class EtudiantController {
             // Créer le profil étudiant
             $stmt = $this->pdo->prepare(
                 'INSERT INTO etudiants (utilisateur_id, numero_etudiant, niveau,
-                                        annee_scolaire, departement_id)
-                 VALUES (:uid, :num, :niveau, :annee, :did)'
+                                        annee_scolaire, departement_id, ecole, groupe_td_id)
+                 VALUES (:uid, :num, :niveau, :annee, :did, :eco, :gtd)'
             );
             $stmt->execute([
                 ':uid'    => $userId,
                 ':num'    => $this->genererNumeroEtudiant(),
                 ':niveau' => $data['niveau'] ?? 'L1',
                 ':annee'  => $data['annee_scolaire'] ?? date('Y') . '-' . (date('Y')+1),
-                ':did'    => isset($data['departement_id']) ? (int)$data['departement_id'] : null,
+                ':did'    => !empty($data['departement_id']) ? (int)$data['departement_id'] : null,
+                ':eco'    => !empty($data['ecole']) ? trim($data['ecole']) : null,
+                ':gtd'    => !empty($data['groupe_td_id']) ? (int)$data['groupe_td_id'] : null,
             ]);
             $etudiantId = (int)$this->pdo->lastInsertId();
             $this->pdo->commit();
@@ -105,11 +112,15 @@ class EtudiantController {
             ':uid'    => $et['utilisateur_id'],
         ]);
         $this->pdo->prepare(
-            'UPDATE etudiants SET niveau=:niveau, annee_scolaire=:annee, departement_id=:did WHERE id=:id'
+            'UPDATE etudiants SET niveau=:niveau, annee_scolaire=:annee, departement_id=:did,
+                                  ecole=:eco, groupe_td_id=:gtd
+             WHERE id=:id'
         )->execute([
             ':niveau' => $data['niveau'] ?? 'L1',
             ':annee'  => $data['annee_scolaire'] ?? '',
-            ':did'    => isset($data['departement_id']) ? (int)$data['departement_id'] : null,
+            ':did'    => !empty($data['departement_id']) ? (int)$data['departement_id'] : null,
+            ':eco'    => !empty($data['ecole']) ? trim($data['ecole']) : null,
+            ':gtd'    => !empty($data['groupe_td_id']) ? (int)$data['groupe_td_id'] : null,
             ':id'     => $id,
         ]);
         return ['succes' => true];

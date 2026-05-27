@@ -7,23 +7,37 @@ function EtudiantsPage({ user }) {
   const [form, setForm]           = useState({});
   const [error, setError]         = useState('');
   const [departements, setDepts]  = useState([]);
+  const [groupes, setGroupes]     = useState([]);
+
+  // Écoles : simple liste fixe (attribut texte, pas de table dédiée)
+  const ecoles = ['École 1', 'École 2', 'École 3', 'École 4'];
 
   const load = async () => {
     setLoading(true);
-    const [res, dRes] = await Promise.all([
+    const [res, dRes, gRes] = await Promise.all([
       api.getEtudiants({ recherche: search }),
       api.getDepartements(),
+      api.getGroupesTD(),
     ]);
     setEtudiants(res.data || []);
     setDepts(dRes.data || []);
+    setGroupes(gRes.data || []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
   const handleSearch = e => { e.preventDefault(); load(); };
-  const openCreate   = () => { setForm({ niveau: 'L1' }); setError(''); setModal('create'); };
+  // Le groupe de TD doit correspondre au niveau choisi : on le réinitialise.
+  const openCreate   = () => { setForm({ niveau: 'L1', annee_scolaire: anneeDefaut }); setError(''); setModal('create'); };
   const openEdit     = e  => { setForm(e); setError(''); setModal('edit'); };
+
+  // Années scolaires proposées (année courante ± 1)
+  const anneeBase   = new Date().getMonth() >= 7 ? new Date().getFullYear() : new Date().getFullYear() - 1;
+  const annees      = [anneeBase - 1, anneeBase, anneeBase + 1].map(a => `${a}-${a + 1}`);
+  const anneeDefaut = `${anneeBase}-${anneeBase + 1}`;
+  // Groupes de TD filtrés selon le niveau sélectionné dans le formulaire
+  const groupesDuNiveau = groupes.filter(g => g.niveau === form.niveau);
 
   const handleSave = async () => {
     setError('');
@@ -71,7 +85,7 @@ function EtudiantsPage({ user }) {
               <thead>
                 <tr>
                   <th>Numéro</th><th>Nom complet</th><th>Email</th>
-                  <th>Niveau</th><th>Département</th><th>Statut</th>
+                  <th>Niveau</th><th>Groupe TD</th><th>École</th><th>Département</th><th>Statut</th>
                   {user.role === 'admin' && <th>Actions</th>}
                 </tr>
               </thead>
@@ -82,6 +96,8 @@ function EtudiantsPage({ user }) {
                     <td><strong>{e.prenom} {e.nom}</strong></td>
                     <td style={{ color: 'var(--text-mid)' }}>{e.email}</td>
                     <td><span className="badge badge-navy">{e.niveau}</span></td>
+                    <td>{e.groupe_td || '—'}</td>
+                    <td>{e.ecole || '—'}</td>
                     <td>{e.departement || '—'}</td>
                     <td><span className={`badge ${e.actif ? 'badge-success' : 'badge-danger'}`}>{e.actif ? 'Actif' : 'Inactif'}</span></td>
                     {user.role === 'admin' && (
@@ -134,8 +150,28 @@ function EtudiantsPage({ user }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="form-group">
                 <label>Niveau</label>
-                <select value={form.niveau || 'L1'} onChange={e => setForm(f => ({ ...f, niveau: e.target.value }))}>
+                <select value={form.niveau || 'L1'}
+                        onChange={e => setForm(f => ({ ...f, niveau: e.target.value, groupe_td_id: '' }))}>
                   {niveaux.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Groupe de TD</label>
+                <select value={form.groupe_td_id || ''} onChange={e => setForm(f => ({ ...f, groupe_td_id: e.target.value }))}>
+                  <option value="">— Aucun —</option>
+                  {groupesDuNiveau.map(g => <option key={g.id} value={g.id}>{g.libelle}</option>)}
+                </select>
+                {groupesDuNiveau.length === 0 && (
+                  <small style={{ color: 'var(--text-light)' }}>Aucun groupe pour ce niveau.</small>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="form-group">
+                <label>École</label>
+                <select value={form.ecole || ''} onChange={e => setForm(f => ({ ...f, ecole: e.target.value }))}>
+                  <option value="">— Aucune —</option>
+                  {ecoles.map(ec => <option key={ec} value={ec}>{ec}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -148,7 +184,9 @@ function EtudiantsPage({ user }) {
             </div>
             <div className="form-group">
               <label>Année scolaire</label>
-              <input value={form.annee_scolaire || ''} onChange={e => setForm(f => ({ ...f, annee_scolaire: e.target.value }))} placeholder="ex: 2025-2026" />
+              <select value={form.annee_scolaire || anneeDefaut} onChange={e => setForm(f => ({ ...f, annee_scolaire: e.target.value }))}>
+                {annees.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
             </div>
           </div>
         </Modal>

@@ -15,6 +15,7 @@ class EnseignantController {
         $stmt = $this->pdo->query(
             'SELECT e.id, e.grade,
                     d.nom AS departement, d.id AS departement_id,
+                    e.ecole,
                     u.nom, u.prenom, u.email, u.actif,
                     (SELECT COUNT(*) FROM cours c WHERE c.enseignant_id = e.id) AS nb_cours
              FROM enseignants e
@@ -28,7 +29,7 @@ class EnseignantController {
 
     public function obtenir(int $id): ?array {
         $stmt = $this->pdo->prepare(
-            'SELECT e.id, e.utilisateur_id, e.grade, e.departement_id,
+            'SELECT e.id, e.utilisateur_id, e.grade, e.departement_id, e.ecole,
                     d.nom AS departement,
                     u.nom, u.prenom, u.email, u.actif
              FROM enseignants e
@@ -64,13 +65,14 @@ class EnseignantController {
             $userId = (int) $this->pdo->lastInsertId();
 
             $stmt = $this->pdo->prepare(
-                'INSERT INTO enseignants (utilisateur_id, grade, departement_id)
-                 VALUES (:uid, :grade, :departement_id)'
+                'INSERT INTO enseignants (utilisateur_id, grade, departement_id, ecole)
+                 VALUES (:uid, :grade, :departement_id, :ecole)'
             );
             $stmt->execute([
                 ':uid'           => $userId,
                 ':grade'         => $data['grade'] ?? 'Maître de conférences',
-                ':departement_id'=> isset($data['departement_id']) ? (int)$data['departement_id'] : null,
+                ':departement_id'=> !empty($data['departement_id']) ? (int)$data['departement_id'] : null,
+                ':ecole'         => !empty($data['ecole']) ? trim($data['ecole']) : null,
             ]);
             $enseignantId = (int) $this->pdo->lastInsertId();
             $this->pdo->commit();
@@ -96,10 +98,11 @@ class EnseignantController {
         ]);
 
         $this->pdo->prepare(
-            'UPDATE enseignants SET grade = :grade, departement_id = :departement_id WHERE id = :id'
+            'UPDATE enseignants SET grade = :grade, departement_id = :departement_id, ecole = :ecole WHERE id = :id'
         )->execute([
             ':grade'          => $data['grade'] ?? '',
-            ':departement_id' => isset($data['departement_id']) ? (int)$data['departement_id'] : null,
+            ':departement_id' => !empty($data['departement_id']) ? (int)$data['departement_id'] : null,
+            ':ecole'          => !empty($data['ecole']) ? trim($data['ecole']) : null,
             ':id'             => $id,
         ]);
         return ['succes' => true];

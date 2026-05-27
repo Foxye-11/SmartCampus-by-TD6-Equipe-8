@@ -21,7 +21,7 @@ class EnseignantController {
              FROM enseignants e
              JOIN utilisateurs u ON u.id = e.utilisateur_id
              LEFT JOIN departements d ON d.id = e.departement_id
-             WHERE u.actif = 1
+             WHERE 1=1
              ORDER BY u.nom, u.prenom'
         );
         return $stmt->fetchAll();

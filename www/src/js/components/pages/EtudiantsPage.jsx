@@ -8,9 +8,31 @@ function EtudiantsPage({ user }) {
   const [error, setError]         = useState('');
   const [departements, setDepts]  = useState([]);
   const [groupes, setGroupes]     = useState([]);
+  // Création rapide d'un groupe de TD depuis le formulaire
+  const [showNewGrp, setShowNewGrp] = useState(false);
+  const [newGrpNom, setNewGrpNom]   = useState('');
+  const [grpError, setGrpError]     = useState('');
 
   // Écoles : simple liste fixe (attribut texte, pas de table dédiée)
   const ecoles = ['École 1', 'École 2', 'École 3', 'École 4'];
+
+  const reloadGroupes = async () => { const g = await api.getGroupesTD(); setGroupes(g.data || []); };
+
+  const handleCreerGroupe = async () => {
+    setGrpError('');
+    const res = await api.creerGroupeTD({
+      niveau:         form.niveau || 'L1',
+      nom:            newGrpNom,
+      annee_scolaire: form.annee_scolaire || anneeDefaut,
+    });
+    if (res.ok && res.data.succes) {
+      await reloadGroupes();
+      setForm(f => ({ ...f, groupe_td_id: res.data.id }));
+      setNewGrpNom(''); setShowNewGrp(false);
+    } else {
+      setGrpError((res.data.erreurs || [res.data.erreur]).join(', '));
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -161,8 +183,21 @@ function EtudiantsPage({ user }) {
                   <option value="">— Aucun —</option>
                   {groupesDuNiveau.map(g => <option key={g.id} value={g.id}>{g.libelle}</option>)}
                 </select>
-                {groupesDuNiveau.length === 0 && (
-                  <small style={{ color: 'var(--text-light)' }}>Aucun groupe pour ce niveau.</small>
+                {!showNewGrp ? (
+                  <button type="button" className="btn btn-outline btn-sm" style={{ marginTop: 6 }}
+                          onClick={() => { setGrpError(''); setShowNewGrp(true); }}>
+                    + Nouveau groupe
+                  </button>
+                ) : (
+                  <div style={{ marginTop: 6, padding: 8, border: '1px solid var(--cream-dark)', borderRadius: 'var(--radius)' }}>
+                    <small style={{ color: 'var(--text-mid)' }}>Pour {form.niveau || 'L1'} · {form.annee_scolaire || anneeDefaut}</small>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                      <input placeholder="ex: TD05" value={newGrpNom} onChange={e => setNewGrpNom(e.target.value)} />
+                      <button type="button" className="btn btn-primary btn-sm" onClick={handleCreerGroupe}>Créer</button>
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => { setShowNewGrp(false); setNewGrpNom(''); setGrpError(''); }}>×</button>
+                    </div>
+                    {grpError && <small style={{ color: 'var(--danger, #c0392b)' }}>{grpError}</small>}
+                  </div>
                 )}
               </div>
             </div>

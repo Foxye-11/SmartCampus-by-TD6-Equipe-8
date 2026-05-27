@@ -73,7 +73,8 @@ const api = {
   modifierPresence:  (id, statut) => api.put(`/presences.php?id=${id}`, { statut }),
 
   // Références (groupes de TD)
-  getGroupesTD: (niveau) => api.get('/references.php', { action: 'groupes_td', niveau }),
+  getGroupesTD:   (niveau) => api.get('/references.php', { action: 'groupes_td', niveau }),
+  creerGroupeTD:  (d)      => api.post('/references.php', d),
 
   // Emploi du temps
   getEmploiDuTemps: (f) => api.get('/emploi_du_temps.php', f || {}),

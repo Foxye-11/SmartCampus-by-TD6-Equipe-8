@@ -18,6 +18,7 @@ switch ($method) {
         } else {
             $filtres = [
                 'cours_id'      => $_GET['cours_id']      ?? '',
+                'matiere'       => $_GET['matiere']       ?? '',
                 'enseignant_id' => $_GET['enseignant_id'] ?? '',
                 'etudiant_id'   => $_GET['etudiant_id']   ?? '',
             ];

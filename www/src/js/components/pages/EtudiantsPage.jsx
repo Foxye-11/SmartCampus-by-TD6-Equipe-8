@@ -34,22 +34,30 @@ function EtudiantsPage({ user }) {
     }
   };
 
+  const asArray = x => Array.isArray(x) ? x : [];
+
   const load = async () => {
     setLoading(true);
-    const [res, dRes, gRes] = await Promise.all([
-      api.getEtudiants({ recherche: search }),
-      api.getDepartements(),
-      api.getGroupesTD(),
-    ]);
-    setEtudiants(res.data || []);
-    setDepts(dRes.data || []);
-    setGroupes(gRes.data || []);
-    setLoading(false);
+    try {
+      const [res, dRes, gRes] = await Promise.all([
+        api.getEtudiants({ recherche: search }),
+        api.getDepartements(),
+        api.getGroupesTD(),
+      ]);
+      setEtudiants(asArray(res.data));
+      setDepts(asArray(dRes.data));
+      setGroupes(asArray(gRes.data));
+    } catch (err) {
+      console.error('Chargement étudiants : ', err);
+      setEtudiants([]); setDepts([]); setGroupes([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
-  const handleSearch = e => { e.preventDefault(); load(); };
+  const handleSearch = e => { if (e && e.preventDefault) e.preventDefault(); load(); };
   // Le groupe de TD doit correspondre au niveau choisi : on le réinitialise.
   const openCreate   = () => { setForm({ niveau: 'L1', annee_scolaire: anneeDefaut }); setError(''); setModal('create'); };
   const openEdit     = e  => { setForm(e); setError(''); setModal('edit'); };

@@ -7,6 +7,9 @@ function NotesPage({ user }) {
   const [selCours, setSelCours] = useState('');
   const [notesCours, setNotesC] = useState([]);
   const [inscrits, setInscrits] = useState([]);
+  const [matieres, setMat]      = useState([]);
+  const [selMatiere, setSelMat] = useState('');
+  const [notesMat, setNotesM]   = useState([]);
   const [modal, setModal]       = useState(null);
   const [form, setForm]         = useState({});
   const [error, setError]       = useState('');
@@ -21,8 +24,18 @@ function NotesPage({ user }) {
     if (user.role !== 'etudiant') {
       const req = user.role === 'enseignant' ? api.coursEnseignant(user.enseignant_id) : api.getCours();
       req.then(r => setCours(r.data || []));
+      api.getMatieres().then(r => setMat(r.data || []));
     }
   }, []);
+
+  useEffect(() => {
+    if (selMatiere) {
+      setSelCours('');
+      api.notesParMatiere(selMatiere).then(r => setNotesM(Array.isArray(r.data) ? r.data : []));
+    } else {
+      setNotesM([]);
+    }
+  }, [selMatiere]);
 
   useEffect(() => {
     if (user.role === 'etudiant' && semId) {
@@ -104,10 +117,15 @@ function NotesPage({ user }) {
       {(user.role === 'enseignant' || user.role === 'admin') && (
         <>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
-            <select value={selCours} onChange={e => setSelCours(e.target.value)}
+            <select value={selMatiere} onChange={e => setSelMat(e.target.value)}
+              style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 220 }}>
+              <option value="">— Toutes les matières —</option>
+              {matieres.map(m => <option key={m.matiere} value={m.matiere}>{m.matiere}</option>)}
+            </select>
+            <select value={selCours} onChange={e => { setSelCours(e.target.value); if (e.target.value) setSelMat(''); }}
               style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 260 }}>
               <option value="">— Sélectionner un cours —</option>
-              {cours.map(c => <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>)}
+              {cours.filter(c => !selMatiere || c.matiere === selMatiere).map(c => <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>)}
             </select>
             {selCours && (
               <button className="btn btn-primary btn-sm" onClick={() => { setForm({ cours_id: selCours }); setError(''); setModal({}); }}>
@@ -141,6 +159,31 @@ function NotesPage({ user }) {
                               <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Supprimer ?')) { await api.supprimerNote(n.id); api.notesDuCours(selCours).then(r => setNotesC(r.data || [])); } }}><Icons.Trash /></button>
                             </div>
                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Vue par matière : notes de tous les cours de cette matière (lecture seule) */}
+          {!selCours && selMatiere && (
+            <div className="card">
+              {notesMat.length === 0 ? <EmptyState icon="📚" message="Aucune note pour cette matière." /> : (
+                <div className="table-wrapper">
+                  <table>
+                    <thead><tr><th>Cours</th><th>Étudiant</th><th>Type</th><th>Note</th><th>Coeff.</th><th>Date</th></tr></thead>
+                    <tbody>
+                      {notesMat.map(n => (
+                        <tr key={n.id}>
+                          <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{n.cours_code}</code> {n.cours_intitule}</td>
+                          <td><strong>{n.etudiant}</strong><br /><small style={{ color: 'var(--text-light)' }}>{n.numero_etudiant}</small></td>
+                          <td><span className="badge badge-navy">{n.type_evaluation}</span></td>
+                          <td><strong>{n.valeur}/20</strong></td>
+                          <td>×{n.coefficient}</td>
+                          <td style={{ color: 'var(--text-light)', fontSize: '.8rem' }}>{new Date(n.date_saisie).toLocaleDateString('fr-FR')}</td>
                         </tr>
                       ))}
                     </tbody>

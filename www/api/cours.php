@@ -13,6 +13,7 @@ switch ($method) {
     case 'GET':
         if ($action === 'semestres') { echo json_encode($controller->semestres()); break; }
         if ($action === 'departements') { echo json_encode($controller->departements()); break; }
+        if ($action === 'matieres') { echo json_encode($controller->matieres()); break; }
         if ($action === 'sessions' && $id) { echo json_encode($controller->sessionsParCours($id)); break; }
         if ($action === 'groupes' && $id) { echo json_encode($controller->groupesDuCours($id)); break; }
         if ($id) {
@@ -23,7 +24,8 @@ switch ($method) {
             $semestreId    = isset($_GET['semestre_id'])    ? (int)$_GET['semestre_id']    : null;
             $departementId = isset($_GET['departement_id']) ? (int)$_GET['departement_id'] : null;
             $groupeTdId    = isset($_GET['groupe_td_id'])   ? (int)$_GET['groupe_td_id']   : null;
-            echo json_encode($controller->lister($semestreId, $departementId, $groupeTdId));
+            $matiere       = isset($_GET['matiere'])        ? $_GET['matiere']             : null;
+            echo json_encode($controller->lister($semestreId, $departementId, $groupeTdId, $matiere));
         }
         break;
     case 'POST':

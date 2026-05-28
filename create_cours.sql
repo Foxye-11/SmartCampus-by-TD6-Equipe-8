@@ -28,6 +28,7 @@ BEGIN
     DECLARE v_dep INT;
     DECLARE v_code VARCHAR(20);
     DECLARE v_int VARCHAR(150);
+    DECLARE v_niv VARCHAR(20);
 
     WHILE i <= 40 DO
         SET p    = (i - 1) % 5;          -- 5 enseignants
@@ -65,6 +66,22 @@ BEGIN
 
         INSERT INTO sessions_cours (cours_id, salle_id, jour_semaine, heure_debut, heure_fin, date_specifique)
         VALUES (v_cid, v_sid, v_jour, v_hd, v_hf, NULL);
+
+        -- Affectation des groupes de TD :
+        --   amphi (prof 5 / 'Amphi Curie')  -> 4 TD d'un même niveau (ING1 ou ING2)
+        --   autre salle                     -> 1 seul TD
+        IF p = 4 THEN
+            SET v_niv = IF(i % 2 = 0, 'ING2', 'ING1');
+            INSERT INTO cours_groupes (cours_id, groupe_td_id)
+            SELECT v_cid, id FROM groupes_td
+            WHERE niveau = v_niv AND annee_scolaire = '2025-2026'
+              AND nom IN ('TD01','TD02','TD03','TD04');
+        ELSE
+            SET v_niv = ELT(1 + (i % 6), 'ING1','ING2','ING3','L1','L2','L3');
+            INSERT INTO cours_groupes (cours_id, groupe_td_id)
+            SELECT v_cid, id FROM groupes_td
+            WHERE niveau = v_niv AND annee_scolaire = '2025-2026' AND nom = 'TD01';
+        END IF;
 
         SET i = i + 1;
     END WHILE;

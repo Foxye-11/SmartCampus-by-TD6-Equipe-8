@@ -13,8 +13,8 @@ class CoursController {
         $this->pdo = getDB();
     }
 
-    public function lister(?int $semestreId = null, ?int $departementId = null, ?int $groupeTdId = null): array {
-        $sql = 'SELECT c.id, c.code, c.intitule, c.credits, c.capacite_max,
+    public function lister(?int $semestreId = null, ?int $departementId = null, ?int $groupeTdId = null, ?string $matiere = null): array {
+        $sql = 'SELECT c.id, c.code, c.intitule, c.matiere, c.credits, c.capacite_max,
                        c.notes_verrouillees,
                        s.libelle AS semestre, s.id AS semestre_id,
                        d.nom AS departement,
@@ -37,6 +37,10 @@ class CoursController {
         if ($groupeTdId) {
             $sql .= ' AND c.id IN (SELECT cours_id FROM cours_groupes WHERE groupe_td_id = :gtd)';
             $params[':gtd'] = $groupeTdId;
+        }
+        if ($matiere !== null && $matiere !== '') {
+            $sql .= ' AND c.matiere = :mat';
+            $params[':mat'] = $matiere;
         }
         $sql .= ' ORDER BY s.libelle, c.intitule';
         $stmt = $this->pdo->prepare($sql);
@@ -69,14 +73,17 @@ class CoursController {
         $this->pdo->beginTransaction();
         try {
             $stmt = $this->pdo->prepare(
-                'INSERT INTO cours (code, intitule, credits, capacite_max, semestre_id,
+                'INSERT INTO cours (code, intitule, matiere, credits, capacite_max, semestre_id,
                                     departement_id, enseignant_id, description)
-                 VALUES (:code, :intitule, :credits, :capacite_max, :semestre_id,
+                 VALUES (:code, :intitule, :matiere, :credits, :capacite_max, :semestre_id,
                          :departement_id, :enseignant_id, :description)'
             );
             $stmt->execute([
                 ':code'           => trim($data['code']),
                 ':intitule'       => trim($data['intitule']),
+                ':matiere'        => !empty($data['matiere'])
+                                       ? trim($data['matiere'])
+                                       : trim(explode(' (', $data['intitule'] ?? '')[0]),
                 ':credits'        => (int)($data['credits'] ?? 3),
                 ':capacite_max'   => (int)($data['capacite_max'] ?? 30),
                 ':semestre_id'    => (int)$data['semestre_id'],
@@ -181,7 +188,7 @@ class CoursController {
         if (!empty($erreurs)) return ['succes' => false, 'erreurs' => $erreurs];
 
         $stmt = $this->pdo->prepare(
-            'UPDATE cours SET code=:code, intitule=:intitule, credits=:credits,
+            'UPDATE cours SET code=:code, intitule=:intitule, matiere=:matiere, credits=:credits,
                               capacite_max=:capacite_max, semestre_id=:semestre_id,
                               departement_id=:departement_id, enseignant_id=:enseignant_id,
                               description=:description
@@ -190,11 +197,12 @@ class CoursController {
         $stmt->execute([
             ':code'           => trim($data['code']),
             ':intitule'       => trim($data['intitule']),
+            ':matiere'        => !empty($data['matiere']) ? trim($data['matiere']) : null,
             ':credits'        => (int)($data['credits'] ?? 3),
             ':capacite_max'   => (int)($data['capacite_max'] ?? 30),
             ':semestre_id'    => (int)$data['semestre_id'],
-            ':departement_id' => isset($data['departement_id']) ? (int)$data['departement_id'] : null,
-            ':enseignant_id'  => isset($data['enseignant_id']) ? (int)$data['enseignant_id'] : null,
+            ':departement_id' => !empty($data['departement_id']) ? (int)$data['departement_id'] : null,
+            ':enseignant_id'  => !empty($data['enseignant_id']) ? (int)$data['enseignant_id'] : null,
             ':description'    => isset($data['description']) ? trim($data['description']) : null,
             ':id'             => $id,
         ]);
@@ -217,6 +225,15 @@ class CoursController {
 
     public function departements(): array {
         return $this->pdo->query('SELECT * FROM departements ORDER BY nom')->fetchAll();
+    }
+
+    // Liste des matières distinctes (pour les filtres « par matière »)
+    public function matieres(): array {
+        return $this->pdo->query(
+            "SELECT DISTINCT matiere FROM cours
+             WHERE matiere IS NOT NULL AND matiere <> ''
+             ORDER BY matiere"
+        )->fetchAll();
     }
 
     public function sessionsParCours(int $coursId): array {

@@ -203,6 +203,31 @@ class NoteController {
     }
 
     // -----------------------------------------------
+    // Notes de tous les cours partageant une matière donnée
+    // (enseignant / admin)
+    // -----------------------------------------------
+    public function notesParMatiere(string $matiere): array {
+        Auth::exiger('enseignant', 'admin');
+
+        $stmt = $this->pdo->prepare(
+            'SELECT n.id, n.type_evaluation, n.valeur, n.coefficient,
+                    n.commentaire, n.date_saisie,
+                    et.numero_etudiant,
+                    CONCAT(u.prenom, " ", u.nom) AS etudiant,
+                    c.code AS cours_code, c.intitule AS cours_intitule
+             FROM notes n
+             JOIN inscriptions i ON i.id = n.inscription_id
+             JOIN cours c        ON c.id = i.cours_id
+             JOIN etudiants et   ON et.id = i.etudiant_id
+             JOIN utilisateurs u ON u.id = et.utilisateur_id
+             WHERE c.matiere = :mat AND i.statut = "active"
+             ORDER BY c.code, u.nom, u.prenom, n.type_evaluation'
+        );
+        $stmt->execute([':mat' => $matiere]);
+        return $stmt->fetchAll();
+    }
+
+    // -----------------------------------------------
     // Calcul de la moyenne d'un étudiant dans un cours
     // -----------------------------------------------
     public function calculerMoyenne(int $etudiantId, int $coursId): array {

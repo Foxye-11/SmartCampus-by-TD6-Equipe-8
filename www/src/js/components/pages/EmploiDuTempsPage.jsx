@@ -7,37 +7,37 @@ function EmploiDuTempsPage({ user }) {
   // Listes pour les filtres (admin uniquement)
   const [enseignants, setEns] = useState([]);
   const [etudiants, setEtus]  = useState([]);
-  const [coursList, setCours] = useState([]);
+  const [matieres, setMat]    = useState([]);
 
   // Type de filtre par personne : 'prof' ou 'eleve'
   const [typePersonne, setTypePersonne] = useState('prof');
-  const [filtrePersonne, setFiltrePers] = useState(''); // id enseignant ou étudiant
-  const [filtreCours, setFiltreCours]   = useState(''); // matière
+  const [filtrePersonne, setFiltrePers] = useState('');  // id enseignant ou étudiant
+  const [filtreMatiere, setFiltreMat]   = useState('');  // nom de matière
 
   const load = async () => {
     setLoading(true);
     const params = {};
     if (isAdmin) {
-      if (filtreCours) params.cours_id = filtreCours;
+      if (filtreMatiere) params.matiere = filtreMatiere;
       if (filtrePersonne) {
         if (typePersonne === 'prof') params.enseignant_id = filtrePersonne;
         else params.etudiant_id = filtrePersonne;
       }
     }
     const r = await api.getEmploiDuTemps(params);
-    setSessions(r.data || []);
+    setSessions(Array.isArray(r.data) ? r.data : []);
     setLoading(false);
   };
 
   // Chargement initial des référentiels de filtre (admin)
   useEffect(() => {
     if (!isAdmin) return;
-    Promise.all([api.getEnseignants(), api.getEtudiants({}), api.getCours({})]).then(([e, et, c]) => {
-      setEns(e.data || []); setEtus(et.data || []); setCours(c.data || []);
+    Promise.all([api.getEnseignants(), api.getEtudiants({}), api.getMatieres()]).then(([e, et, m]) => {
+      setEns(e.data || []); setEtus(et.data || []); setMat(m.data || []);
     });
   }, []);
 
-  useEffect(() => { load(); }, [filtreCours, filtrePersonne, typePersonne]);
+  useEffect(() => { load(); }, [filtreMatiere, filtrePersonne, typePersonne]);
 
   const jours  = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
   const heures = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
@@ -48,7 +48,7 @@ function EmploiDuTempsPage({ user }) {
 
   const selectStyle = { padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem' };
 
-  const resetFiltres = () => { setFiltrePers(''); setFiltreCours(''); };
+  const resetFiltres = () => { setFiltrePers(''); setFiltreMat(''); };
 
   return (
     <div className="fade-in">
@@ -75,12 +75,12 @@ function EmploiDuTempsPage({ user }) {
                 {etudiants.map(e => <option key={e.id} value={e.id}>{e.prenom} {e.nom} ({e.numero_etudiant})</option>)}
               </select>
             )}
-            {/* Filtre par matière */}
-            <select value={filtreCours} onChange={e => setFiltreCours(e.target.value)} style={selectStyle}>
+            {/* Filtre par matière (regroupe tous les cours d'une même matière) */}
+            <select value={filtreMatiere} onChange={e => setFiltreMat(e.target.value)} style={selectStyle}>
               <option value="">Toutes les matières</option>
-              {coursList.map(c => <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>)}
+              {matieres.map(m => <option key={m.matiere} value={m.matiere}>{m.matiere}</option>)}
             </select>
-            {(filtrePersonne || filtreCours) && (
+            {(filtrePersonne || filtreMatiere) && (
               <button className="btn btn-outline btn-sm" onClick={resetFiltres}>Réinitialiser</button>
             )}
           </div>

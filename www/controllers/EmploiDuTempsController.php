@@ -64,10 +64,15 @@ class EmploiDuTempsController {
              LEFT JOIN utilisateurs u ON u.id = e.utilisateur_id
              WHERE 1=1';
         $params = [];
-        // Filtre par matière (cours)
+        // Filtre par cours individuel (si vraiment besoin)
         if (!empty($filtres['cours_id'])) {
             $sql .= ' AND c.id = :cid';
             $params[':cid'] = (int)$filtres['cours_id'];
+        }
+        // Filtre par matière : tous les cours partageant cette matière
+        if (!empty($filtres['matiere'])) {
+            $sql .= ' AND c.matiere = :mat';
+            $params[':mat'] = $filtres['matiere'];
         }
         // Filtre par enseignant (personne = prof)
         if (!empty($filtres['enseignant_id'])) {

@@ -45,6 +45,7 @@ const api = {
   deleteCours:  (id) => api.delete(`/cours.php?id=${id}`),
   getSemestres: () => api.get('/cours.php', { action: 'semestres' }),
   getDepartements: () => api.get('/cours.php', { action: 'departements' }),
+  getMatieres:  () => api.get('/cours.php', { action: 'matieres' }),
   getSessionsCours: (id) => api.get('/cours.php', { id, action: 'sessions' }),
   getCoursGroupes:  (id) => api.get('/cours.php', { id, action: 'groupes' }),
 
@@ -58,6 +59,7 @@ const api = {
   // Notes
   notesEtudiant: (id, cours_id) => api.get('/notes.php', { action: 'etudiant', id, cours_id }),
   notesDuCours:  (id) => api.get('/notes.php', { action: 'cours', id }),
+  notesParMatiere: (matiere) => api.get('/notes.php', { action: 'matiere', matiere }),
   bulletin:      (id, semestre_id) => api.get('/notes.php', { action: 'bulletin', id, semestre_id }),
   saisirNote:    (d) => api.post('/notes.php', d),
   modifierNote:  (id, d) => api.put(`/notes.php?id=${id}`, d),

@@ -20,6 +20,10 @@ switch ($method) {
             echo json_encode($controller->notesEtudiant($id, $coursId));
         } elseif ($action === 'cours' && $id) {
             echo json_encode($controller->notesDuCours($id));
+        } elseif ($action === 'matiere') {
+            $mat = $_GET['matiere'] ?? '';
+            if ($mat === '') { http_response_code(400); echo json_encode(['erreur' => 'Matière requise.']); break; }
+            echo json_encode($controller->notesParMatiere($mat));
         } elseif ($action === 'bulletin' && $id) {
             $semestreId = (int)($_GET['semestre_id'] ?? 0);
             echo json_encode($controller->bulletin($id, $semestreId));

@@ -1,251 +1,250 @@
--- ============================================
--- SmartCampus - Base de données
--- ATTENTION : ce script supprime et recrée la base.
--- ============================================
+-- ============================================================
+-- SmartCampus — Base de données (script complet)
+-- ATTENTION : ce script SUPPRIME puis recrée la base SmartCampusDB.
+-- ============================================================
 
 DROP DATABASE IF EXISTS SmartCampusDB;
 CREATE DATABASE SmartCampusDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE SmartCampusDB;
 
--- ============================================
--- TABLE : roles
--- ============================================
+-- ============================================================
+-- ROLES
+-- ============================================================
 CREATE TABLE roles (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(50) NOT NULL UNIQUE -- 'etudiant', 'enseignant', 'admin'
+    id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50)  NOT NULL UNIQUE
 );
 
--- ============================================
--- TABLE : utilisateurs
--- ============================================
+-- ============================================================
+-- UTILISATEURS
+-- ============================================================
 CREATE TABLE utilisateurs (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    prenom VARCHAR(100) NOT NULL,
-    email VARCHAR(150) NOT NULL UNIQUE,
-    mot_de_passe VARCHAR(255) NOT NULL, -- bcrypt hash
-    role_id INT UNSIGNED NOT NULL,
-    actif TINYINT(1) NOT NULL DEFAULT 1,
-    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom           VARCHAR(100) NOT NULL,
+    prenom        VARCHAR(100) NOT NULL,
+    email         VARCHAR(150) NOT NULL UNIQUE,
+    mot_de_passe  VARCHAR(255) NOT NULL,
+    role_id       INT UNSIGNED NOT NULL,
+    actif         TINYINT(1)   NOT NULL DEFAULT 1,
+    date_creation DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_utilisateur_role FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
--- ============================================
--- TABLE : departements
--- ============================================
+-- ============================================================
+-- DEPARTEMENTS
+-- ============================================================
 CREATE TABLE departements (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL UNIQUE,
-    code VARCHAR(20) NOT NULL UNIQUE
+    id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom  VARCHAR(100) NOT NULL UNIQUE,
+    code VARCHAR(20)  NOT NULL UNIQUE
 );
 
--- ============================================
--- TABLE : salles
--- ============================================
+-- ============================================================
+-- SALLES
+-- ============================================================
 CREATE TABLE salles (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL UNIQUE,
-    capacite INT UNSIGNED NOT NULL,
-    batiment VARCHAR(100),
-    type_salle ENUM('cours', 'tp', 'amphi', 'seminaire') NOT NULL DEFAULT 'cours',
-    disponible TINYINT(1) NOT NULL DEFAULT 1
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom        VARCHAR(100) NOT NULL UNIQUE,
+    capacite   INT UNSIGNED NOT NULL,
+    batiment   VARCHAR(100),
+    type_salle ENUM('cours','tp','amphi','seminaire') NOT NULL DEFAULT 'cours',
+    disponible TINYINT(1)   NOT NULL DEFAULT 1
 );
 
--- ============================================
--- TABLE : groupes_td (groupes de travaux dirigés, ex: ING1 TD03)
--- ============================================
+-- ============================================================
+-- GROUPES DE TD (ex : ING1 TD03)
+-- ============================================================
 CREATE TABLE groupes_td (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(50) NOT NULL,            -- ex: 'TD03'
-    niveau VARCHAR(20) NOT NULL,         -- ex: 'ING1'
-    annee_scolaire VARCHAR(9) NOT NULL,  -- ex: '2025-2026'
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom            VARCHAR(50)  NOT NULL,
+    niveau         VARCHAR(20)  NOT NULL,
+    annee_scolaire VARCHAR(9)   NOT NULL,
     UNIQUE KEY uq_groupe_td (niveau, nom, annee_scolaire)
 );
 
--- ============================================
--- TABLE : etudiants (extension de utilisateurs)
--- ============================================
+-- ============================================================
+-- ETUDIANTS
+-- ============================================================
 CREATE TABLE etudiants (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    utilisateur_id INT UNSIGNED NOT NULL UNIQUE,
-    numero_etudiant VARCHAR(20) NOT NULL UNIQUE,
-    departement_id INT UNSIGNED,
-    ecole VARCHAR(100),                  -- attribut texte (ex: 'École 1')
-    groupe_td_id INT UNSIGNED,
-    niveau VARCHAR(20) NOT NULL, -- 'L1','L2','L3','M1','M2','ING1','ING2'...
-    annee_scolaire VARCHAR(9) NOT NULL, -- ex: '2025-2026' (affichée sur le relevé de notes)
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id  INT UNSIGNED NOT NULL UNIQUE,
+    numero_etudiant VARCHAR(20)  NOT NULL UNIQUE,
+    departement_id  INT UNSIGNED,
+    ecole           VARCHAR(100),
+    groupe_td_id    INT UNSIGNED,
+    niveau          VARCHAR(20)  NOT NULL,
+    annee_scolaire  VARCHAR(9)   NOT NULL,
     CONSTRAINT fk_etudiant_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     CONSTRAINT fk_etudiant_departement FOREIGN KEY (departement_id) REFERENCES departements(id),
-    CONSTRAINT fk_etudiant_groupe_td FOREIGN KEY (groupe_td_id) REFERENCES groupes_td(id)
+    CONSTRAINT fk_etudiant_groupe_td   FOREIGN KEY (groupe_td_id)   REFERENCES groupes_td(id)
 );
 
--- ============================================
--- TABLE : enseignants (extension de utilisateurs)
--- ============================================
+-- ============================================================
+-- ENSEIGNANTS
+-- ============================================================
 CREATE TABLE enseignants (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     utilisateur_id INT UNSIGNED NOT NULL UNIQUE,
     departement_id INT UNSIGNED,
-    ecole VARCHAR(100),                  -- attribut texte (ex: 'École 1')
-    grade VARCHAR(50), -- rang académique : 'Maître de conférences', 'Professeur', etc.
+    ecole          VARCHAR(100),
+    grade          VARCHAR(50),
     CONSTRAINT fk_enseignant_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE,
     CONSTRAINT fk_enseignant_departement FOREIGN KEY (departement_id) REFERENCES departements(id)
 );
 
--- ============================================
--- TABLE : semestres
--- ============================================
+-- ============================================================
+-- SEMESTRES
+-- ============================================================
 CREATE TABLE semestres (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    libelle VARCHAR(50) NOT NULL, -- ex: 'S1 2025-2026'
-    annee_scolaire VARCHAR(9) NOT NULL,
-    numero TINYINT UNSIGNED NOT NULL, -- 1 ou 2
-    date_debut DATE NOT NULL,
-    date_fin DATE NOT NULL,
-    archive TINYINT(1) NOT NULL DEFAULT 0,
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    libelle        VARCHAR(50)  NOT NULL,
+    annee_scolaire VARCHAR(9)   NOT NULL,
+    numero         TINYINT UNSIGNED NOT NULL,
+    date_debut     DATE         NOT NULL,
+    date_fin       DATE         NOT NULL,
+    archive        TINYINT(1)   NOT NULL DEFAULT 0,
     UNIQUE KEY uq_semestre (annee_scolaire, numero)
 );
 
--- ============================================
--- TABLE : cours
--- ============================================
+-- ============================================================
+-- COURS
+-- ============================================================
 CREATE TABLE cours (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(20) NOT NULL UNIQUE,
-    intitule VARCHAR(150) NOT NULL,
-    matiere VARCHAR(100),                -- regroupe plusieurs cours d'une même matière (filtres EDT/Notes)
-    description TEXT,
-    credits INT UNSIGNED NOT NULL DEFAULT 3,
-    capacite_max INT UNSIGNED NOT NULL DEFAULT 30,
-    departement_id INT UNSIGNED,
-    semestre_id INT UNSIGNED NOT NULL,
-    enseignant_id INT UNSIGNED,          -- référence à enseignants.id
-    notes_verrouillees TINYINT(1) NOT NULL DEFAULT 0,
+    id                 INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    code               VARCHAR(20)  NOT NULL UNIQUE,
+    intitule           VARCHAR(150) NOT NULL,
+    matiere            VARCHAR(100),
+    description        TEXT,
+    credits            INT UNSIGNED NOT NULL DEFAULT 3,
+    capacite_max       INT UNSIGNED NOT NULL DEFAULT 30,
+    departement_id     INT UNSIGNED,
+    semestre_id        INT UNSIGNED NOT NULL,
+    enseignant_id      INT UNSIGNED,
+    notes_verrouillees TINYINT(1)   NOT NULL DEFAULT 0,
     CONSTRAINT fk_cours_departement FOREIGN KEY (departement_id) REFERENCES departements(id),
-    CONSTRAINT fk_cours_semestre FOREIGN KEY (semestre_id) REFERENCES semestres(id),
-    CONSTRAINT fk_cours_enseignant FOREIGN KEY (enseignant_id) REFERENCES enseignants(id) ON DELETE SET NULL
+    CONSTRAINT fk_cours_semestre    FOREIGN KEY (semestre_id)    REFERENCES semestres(id),
+    CONSTRAINT fk_cours_enseignant  FOREIGN KEY (enseignant_id)  REFERENCES enseignants(id) ON DELETE SET NULL
 );
 
--- ============================================
--- TABLE : prerequis (règle métier : prérequis)
--- ============================================
+-- ============================================================
+-- PREREQUIS
+-- ============================================================
 CREATE TABLE prerequis (
-    cours_id INT UNSIGNED NOT NULL,
+    cours_id     INT UNSIGNED NOT NULL,
     prerequis_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (cours_id, prerequis_id),
-    CONSTRAINT fk_prereq_cours FOREIGN KEY (cours_id) REFERENCES cours(id) ON DELETE CASCADE,
+    CONSTRAINT fk_prereq_cours     FOREIGN KEY (cours_id)     REFERENCES cours(id) ON DELETE CASCADE,
     CONSTRAINT fk_prereq_prerequis FOREIGN KEY (prerequis_id) REFERENCES cours(id) ON DELETE CASCADE
 );
 
--- ============================================
--- TABLE : cours_groupes (classe/groupe de TD affecté à un cours)
--- Permet d'inscrire une classe entière et de filtrer les cours par TD.
--- ============================================
+-- ============================================================
+-- COURS <-> GROUPES DE TD
+-- ============================================================
 CREATE TABLE cours_groupes (
-    cours_id INT UNSIGNED NOT NULL,
+    cours_id     INT UNSIGNED NOT NULL,
     groupe_td_id INT UNSIGNED NOT NULL,
     PRIMARY KEY (cours_id, groupe_td_id),
     CONSTRAINT fk_cg_cours  FOREIGN KEY (cours_id)     REFERENCES cours(id)      ON DELETE CASCADE,
     CONSTRAINT fk_cg_groupe FOREIGN KEY (groupe_td_id) REFERENCES groupes_td(id) ON DELETE CASCADE
 );
 
--- ============================================
--- TABLE : sessions_cours (créneaux d'emploi du temps)
--- ============================================
+-- ============================================================
+-- SESSIONS DE COURS (créneaux d'emploi du temps)
+-- ============================================================
 CREATE TABLE sessions_cours (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    cours_id INT UNSIGNED NOT NULL,
-    salle_id INT UNSIGNED,
-    jour_semaine TINYINT UNSIGNED NOT NULL, -- 1=Lundi ... 5=Vendredi
-    heure_debut TIME NOT NULL,
-    heure_fin TIME NOT NULL,
-    date_specifique DATE,                   -- NULL = récurrent hebdo, sinon date précise
-    CONSTRAINT fk_session_cours FOREIGN KEY (cours_id) REFERENCES cours(id) ON DELETE CASCADE,
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    cours_id        INT UNSIGNED NOT NULL,
+    salle_id        INT UNSIGNED,
+    jour_semaine    TINYINT UNSIGNED NOT NULL,
+    heure_debut     TIME NOT NULL,
+    heure_fin       TIME NOT NULL,
+    date_specifique DATE,
+    CONSTRAINT fk_session_cours FOREIGN KEY (cours_id) REFERENCES cours(id)  ON DELETE CASCADE,
     CONSTRAINT fk_session_salle FOREIGN KEY (salle_id) REFERENCES salles(id) ON DELETE SET NULL
 );
 
--- ============================================
--- TABLE : inscriptions (règles métier critiques)
--- ============================================
+-- ============================================================
+-- INSCRIPTIONS
+-- ============================================================
 CREATE TABLE inscriptions (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    etudiant_id INT UNSIGNED NOT NULL,
-    cours_id INT UNSIGNED NOT NULL,
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    etudiant_id      INT UNSIGNED NOT NULL,
+    cours_id         INT UNSIGNED NOT NULL,
     date_inscription DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    statut ENUM('active', 'annulee', 'en_attente') NOT NULL DEFAULT 'active',
-    UNIQUE KEY uq_inscription (etudiant_id, cours_id), -- pas d'inscription double
+    statut           ENUM('active','annulee','en_attente') NOT NULL DEFAULT 'active',
+    UNIQUE KEY uq_inscription (etudiant_id, cours_id),
     CONSTRAINT fk_inscription_etudiant FOREIGN KEY (etudiant_id) REFERENCES etudiants(id) ON DELETE CASCADE,
-    CONSTRAINT fk_inscription_cours FOREIGN KEY (cours_id) REFERENCES cours(id) ON DELETE CASCADE
+    CONSTRAINT fk_inscription_cours    FOREIGN KEY (cours_id)    REFERENCES cours(id)     ON DELETE CASCADE
 );
 
--- ============================================
--- TABLE : notes
--- ============================================
+-- ============================================================
+-- NOTES
+-- ============================================================
 CREATE TABLE notes (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    inscription_id INT UNSIGNED NOT NULL,
-    type_evaluation VARCHAR(50) NOT NULL, -- 'examen', 'partiel', 'tp', 'projet'
-    valeur DECIMAL(5,2) NOT NULL,         -- sur 20
-    coefficient DECIMAL(4,2) NOT NULL DEFAULT 1.00,
-    date_saisie DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    commentaire TEXT,
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    inscription_id  INT UNSIGNED NOT NULL,
+    type_evaluation VARCHAR(50)  NOT NULL,
+    valeur          DECIMAL(5,2) NOT NULL,
+    coefficient     DECIMAL(4,2) NOT NULL DEFAULT 1.00,
+    date_saisie     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    commentaire     TEXT,
     CONSTRAINT fk_note_inscription FOREIGN KEY (inscription_id) REFERENCES inscriptions(id) ON DELETE CASCADE,
     CONSTRAINT chk_note_valeur CHECK (valeur >= 0 AND valeur <= 20)
 );
 
--- ============================================
--- TABLE : presences
--- ============================================
+-- ============================================================
+-- PRESENCES
+-- ============================================================
 CREATE TABLE presences (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    inscription_id INT UNSIGNED NOT NULL,
-    session_id INT UNSIGNED NOT NULL,
-    statut ENUM('present', 'absent', 'retard', 'excuse') NOT NULL DEFAULT 'present',
-    date_enregistrement DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    inscription_id       INT UNSIGNED NOT NULL,
+    session_id           INT UNSIGNED NOT NULL,
+    statut               ENUM('present','absent','retard','excuse') NOT NULL DEFAULT 'present',
+    date_enregistrement  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_presence (inscription_id, session_id),
-    CONSTRAINT fk_presence_inscription FOREIGN KEY (inscription_id) REFERENCES inscriptions(id) ON DELETE CASCADE,
-    CONSTRAINT fk_presence_session FOREIGN KEY (session_id) REFERENCES sessions_cours(id) ON DELETE CASCADE
+    CONSTRAINT fk_presence_inscription FOREIGN KEY (inscription_id) REFERENCES inscriptions(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_presence_session     FOREIGN KEY (session_id)     REFERENCES sessions_cours(id) ON DELETE CASCADE
 );
 
--- ============================================
--- TABLE : messages
--- ============================================
+-- ============================================================
+-- MESSAGES
+-- ============================================================
 CREATE TABLE messages (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    expediteur_id INT UNSIGNED NOT NULL,
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    expediteur_id   INT UNSIGNED NOT NULL,
     destinataire_id INT UNSIGNED NOT NULL,
-    sujet VARCHAR(200) NOT NULL,
-    contenu TEXT NOT NULL,
-    lu TINYINT(1) NOT NULL DEFAULT 0,
-    date_envoi DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_message_expediteur FOREIGN KEY (expediteur_id) REFERENCES utilisateurs(id),
+    sujet           VARCHAR(200) NOT NULL,
+    contenu         TEXT NOT NULL,
+    lu              TINYINT(1)   NOT NULL DEFAULT 0,
+    date_envoi      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_message_expediteur   FOREIGN KEY (expediteur_id)   REFERENCES utilisateurs(id),
     CONSTRAINT fk_message_destinataire FOREIGN KEY (destinataire_id) REFERENCES utilisateurs(id)
 );
 
--- ============================================
--- TABLE : notifications
--- ============================================
+-- ============================================================
+-- NOTIFICATIONS
+-- ============================================================
 CREATE TABLE notifications (
-    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     utilisateur_id INT UNSIGNED NOT NULL,
-    type VARCHAR(50) NOT NULL, -- 'note_publiee', 'absence', 'nouveau_cours', etc.
-    contenu TEXT NOT NULL,
-    lue TINYINT(1) NOT NULL DEFAULT 0,
-    date_creation DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    type           VARCHAR(50) NOT NULL,
+    contenu        TEXT NOT NULL,
+    lue            TINYINT(1)  NOT NULL DEFAULT 0,
+    date_creation  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_notif_utilisateur FOREIGN KEY (utilisateur_id) REFERENCES utilisateurs(id) ON DELETE CASCADE
 );
 
--- ============================================
--- DONNÉES INITIALES
--- ============================================
+-- ============================================================
+-- DONNEES INITIALES
+-- ============================================================
 
 INSERT INTO roles (nom) VALUES ('etudiant'), ('enseignant'), ('admin');
 
 INSERT INTO departements (nom, code) VALUES
-    ('Informatique', 'INFO'),
+    ('Informatique',  'INFO'),
     ('Mathématiques', 'MATH'),
-    ('Génie Civil', 'GC'),
-    ('Physique', 'PHY');
+    ('Génie Civil',   'GC'),
+    ('Physique',      'PHY');
 
 INSERT INTO groupes_td (niveau, nom, annee_scolaire) VALUES
     ('ING1','TD01','2025-2026'), ('ING1','TD02','2025-2026'),
@@ -258,24 +257,21 @@ INSERT INTO groupes_td (niveau, nom, annee_scolaire) VALUES
     ('L3','TD01','2025-2026'),   ('L3','TD02','2025-2026'),
     ('M1','TD01','2025-2026'),   ('M2','TD01','2025-2026');
 
--- Semestres S1 et S2 (indispensables pour créer un cours)
 INSERT INTO semestres (libelle, annee_scolaire, numero, date_debut, date_fin) VALUES
     ('S1 2025-2026', '2025-2026', 1, '2025-09-01', '2026-01-31'),
     ('S2 2025-2026', '2025-2026', 2, '2026-02-01', '2026-06-30');
 
--- Salles de démonstration
 INSERT INTO salles (nom, capacite, batiment, type_salle, disponible) VALUES
-    ('A101', 40, 'Bâtiment A', 'cours', 1),
-    ('A102', 40, 'Bâtiment A', 'cours', 1),
-    ('B201', 30, 'Bâtiment B', 'tp', 1),
-    ('B202', 30, 'Bâtiment B', 'tp', 1),
-    ('Amphi Curie', 200, 'Bâtiment C', 'amphi', 1),
-    ('Amphi Newton', 150, 'Bâtiment C', 'amphi', 1),
-    ('S301', 25, 'Bâtiment S', 'seminaire', 1);
+    ('A101',         40,  'Bâtiment A', 'cours',     1),
+    ('A102',         40,  'Bâtiment A', 'cours',     1),
+    ('B201',         30,  'Bâtiment B', 'tp',        1),
+    ('B202',         30,  'Bâtiment B', 'tp',        1),
+    ('Amphi Curie',  200, 'Bâtiment C', 'amphi',     1),
+    ('Amphi Newton', 150, 'Bâtiment C', 'amphi',     1),
+    ('S301',         25,  'Bâtiment S', 'seminaire', 1);
 
 -- Admin par défaut (mot de passe : Admin1234!)
-INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role_id)
-VALUES (
+INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role_id) VALUES (
     'Admin',
     'Système',
     'admin@smartcampus.fr',

@@ -19,6 +19,7 @@ switch ($method) {
                 'niveau'        => $_GET['niveau'] ?? '',
                 'departement_id'=> $_GET['departement_id'] ?? '',
                 'groupe_td_id'  => $_GET['groupe_td_id'] ?? '',
+                'ecole'         => $_GET['ecole'] ?? '',
                 'recherche'     => $_GET['recherche'] ?? '',
             ]);
             echo json_encode($controller->lister($filtres));

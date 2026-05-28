@@ -47,6 +47,7 @@ const api = {
   getDepartements: () => api.get('/cours.php', { action: 'departements' }),
   getMatieres:  () => api.get('/cours.php', { action: 'matieres' }),
   getSessionsCours: (id) => api.get('/cours.php', { id, action: 'sessions' }),
+  getSessionsParMatiere: (matiere) => api.get('/cours.php', { action: 'sessions_matiere', matiere }),
   getCoursGroupes:  (id) => api.get('/cours.php', { id, action: 'groupes' }),
 
   // Inscriptions

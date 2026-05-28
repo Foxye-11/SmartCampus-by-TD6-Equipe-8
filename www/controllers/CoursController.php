@@ -20,8 +20,20 @@ class CoursController {
                        d.nom AS departement,
                        CONCAT(u.prenom," ",u.nom) AS enseignant,
                        e.id AS enseignant_id,
-                       (SELECT COUNT(*) FROM inscriptions i
-                        WHERE i.cours_id = c.id AND i.statut="active") AS inscrits,
+                       /* Effectif = inscriptions individuelles + étudiants des groupes TD affectés */
+                       (SELECT COUNT(DISTINCT t.eid) FROM (
+                           SELECT i.etudiant_id AS eid
+                           FROM inscriptions i
+                           WHERE i.cours_id = c.id AND i.statut = "active"
+                           UNION
+                           SELECT et.id
+                           FROM etudiants et
+                           JOIN utilisateurs u ON u.id = et.utilisateur_id
+                           WHERE u.actif = 1
+                             AND et.groupe_td_id IN (
+                                 SELECT cg.groupe_td_id FROM cours_groupes cg WHERE cg.cours_id = c.id
+                             )
+                        ) t) AS inscrits,
                        (SELECT GROUP_CONCAT(CONCAT(g.niveau, " ", g.nom) ORDER BY g.niveau, g.nom SEPARATOR ", ")
                         FROM cours_groupes cg JOIN groupes_td g ON g.id = cg.groupe_td_id
                         WHERE cg.cours_id = c.id) AS groupes
@@ -234,6 +246,22 @@ class CoursController {
              WHERE matiere IS NOT NULL AND matiere <> ''
              ORDER BY matiere"
         )->fetchAll();
+    }
+
+    // Séances de tous les cours partageant une matière (pour Présences par matière)
+    public function sessionsParMatiere(string $matiere): array {
+        $stmt = $this->pdo->prepare(
+            'SELECT sc.id, sc.jour_semaine, sc.heure_debut, sc.heure_fin, sc.date_specifique,
+                    sc.cours_id, c.code AS cours_code, c.intitule AS cours_intitule,
+                    s.nom AS salle_nom, s.batiment
+             FROM sessions_cours sc
+             JOIN cours c ON c.id = sc.cours_id
+             LEFT JOIN salles s ON s.id = sc.salle_id
+             WHERE c.matiere = :mat
+             ORDER BY sc.jour_semaine, sc.heure_debut'
+        );
+        $stmt->execute([':mat' => $matiere]);
+        return $stmt->fetchAll();
     }
 
     public function sessionsParCours(int $coursId): array {

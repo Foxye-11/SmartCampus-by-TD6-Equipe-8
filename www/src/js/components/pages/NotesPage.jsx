@@ -4,8 +4,6 @@ function NotesPage({ user }) {
   const [semId, setSemId]       = useState('');
   const [bulletin, setBulletin] = useState(null);
   const [cours, setCours]       = useState([]);
-  const [selCours, setSelCours] = useState('');
-  const [notesCours, setNotesC] = useState([]);
   const [inscrits, setInscrits] = useState([]);
   const [matieres, setMat]      = useState([]);
   const [selMatiere, setSelMat] = useState('');
@@ -28,13 +26,14 @@ function NotesPage({ user }) {
     }
   }, []);
 
+  const reloadNotesMat = () => {
+    if (!selMatiere) return;
+    api.notesParMatiere(selMatiere).then(r => setNotesM(Array.isArray(r.data) ? r.data : []));
+  };
+
   useEffect(() => {
-    if (selMatiere) {
-      setSelCours('');
-      api.notesParMatiere(selMatiere).then(r => setNotesM(Array.isArray(r.data) ? r.data : []));
-    } else {
-      setNotesM([]);
-    }
+    if (selMatiere) reloadNotesMat();
+    else setNotesM([]);
   }, [selMatiere]);
 
   useEffect(() => {
@@ -44,12 +43,12 @@ function NotesPage({ user }) {
     }
   }, [semId]);
 
+  // Quand on choisit un cours dans le modal de saisie, récupérer ses inscrits
   useEffect(() => {
-    if (selCours) {
-      api.notesDuCours(selCours).then(r => setNotesC(r.data || []));
-      api.etudiantsDuCours(selCours).then(r => setInscrits(r.data || []));
+    if (modal && !modal.id && form.cours_id) {
+      api.etudiantsDuCours(form.cours_id).then(r => setInscrits(r.data || []));
     }
-  }, [selCours]);
+  }, [form.cours_id, modal]);
 
   const getMentionBadge = m => ({ 'Très Bien': 'badge-success', 'Bien': 'badge-success', 'Assez Bien': 'badge-info', 'Passable': 'badge-warning', 'Insuffisant': 'badge-danger', '-': 'badge-navy' }[m] || 'badge-navy');
 
@@ -58,7 +57,7 @@ function NotesPage({ user }) {
     const res = modal?.id ? await api.modifierNote(modal.id, form) : await api.saisirNote(form);
     if (res.ok && res.data.succes) {
       setModal(null);
-      if (selCours) api.notesDuCours(selCours).then(r => setNotesC(r.data || []));
+      reloadNotesMat();
     } else setError((res.data.erreurs || [res.data.erreur]).join(', '));
   };
 
@@ -118,63 +117,23 @@ function NotesPage({ user }) {
         <>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
             <select value={selMatiere} onChange={e => setSelMat(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 220 }}>
-              <option value="">— Toutes les matières —</option>
+              style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 260 }}>
+              <option value="">— Sélectionner une matière —</option>
               {matieres.map(m => <option key={m.matiere} value={m.matiere}>{m.matiere}</option>)}
             </select>
-            <select value={selCours} onChange={e => { setSelCours(e.target.value); if (e.target.value) setSelMat(''); }}
-              style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 260 }}>
-              <option value="">— Sélectionner un cours —</option>
-              {cours.filter(c => !selMatiere || c.matiere === selMatiere).map(c => <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>)}
-            </select>
-            {selCours && (
-              <button className="btn btn-primary btn-sm" onClick={() => { setForm({ cours_id: selCours }); setError(''); setModal({}); }}>
+            {selMatiere && (
+              <button className="btn btn-primary btn-sm" onClick={() => { setForm({}); setInscrits([]); setError(''); setModal({}); }}>
                 <Icons.Plus />Saisir une note
               </button>
             )}
-            {selCours && user.role === 'admin' && (
-              <button className="btn btn-outline btn-sm" onClick={async () => { if (confirm('Verrouiller définitivement ?')) await api.verrouillerNotes(selCours); }}>
-                🔒 Verrouiller
-              </button>
-            )}
           </div>
-          {selCours && (
-            <div className="card">
-              {notesCours.length === 0 ? <EmptyState icon="📝" message="Aucune note saisie." /> : (
-                <div className="table-wrapper">
-                  <table>
-                    <thead><tr><th>Étudiant</th><th>Type</th><th>Note</th><th>Coefficient</th><th>Commentaire</th><th>Date</th><th>Actions</th></tr></thead>
-                    <tbody>
-                      {notesCours.map(n => (
-                        <tr key={n.id}>
-                          <td><strong>{n.etudiant}</strong><br /><small style={{ color: 'var(--text-light)' }}>{n.numero_etudiant}</small></td>
-                          <td><span className="badge badge-navy">{n.type_evaluation}</span></td>
-                          <td><strong>{n.valeur}/20</strong></td>
-                          <td>×{n.coefficient}</td>
-                          <td style={{ color: 'var(--text-mid)', maxWidth: 160 }}>{n.commentaire || '—'}</td>
-                          <td style={{ color: 'var(--text-light)', fontSize: '.8rem' }}>{new Date(n.date_saisie).toLocaleDateString('fr-FR')}</td>
-                          <td>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button className="btn btn-outline btn-sm" onClick={() => { setForm({ ...n, inscription_id: n.inscription_id }); setError(''); setModal({ id: n.id }); }}><Icons.Edit /></button>
-                              <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Supprimer ?')) { await api.supprimerNote(n.id); api.notesDuCours(selCours).then(r => setNotesC(r.data || [])); } }}><Icons.Trash /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* Vue par matière : notes de tous les cours de cette matière (lecture seule) */}
-          {!selCours && selMatiere && (
+          {selMatiere && (
             <div className="card">
               {notesMat.length === 0 ? <EmptyState icon="📚" message="Aucune note pour cette matière." /> : (
                 <div className="table-wrapper">
                   <table>
-                    <thead><tr><th>Cours</th><th>Étudiant</th><th>Type</th><th>Note</th><th>Coeff.</th><th>Date</th></tr></thead>
+                    <thead><tr><th>Cours</th><th>Étudiant</th><th>Type</th><th>Note</th><th>Coeff.</th><th>Commentaire</th><th>Date</th><th>Actions</th></tr></thead>
                     <tbody>
                       {notesMat.map(n => (
                         <tr key={n.id}>
@@ -183,7 +142,14 @@ function NotesPage({ user }) {
                           <td><span className="badge badge-navy">{n.type_evaluation}</span></td>
                           <td><strong>{n.valeur}/20</strong></td>
                           <td>×{n.coefficient}</td>
+                          <td style={{ color: 'var(--text-mid)', maxWidth: 160 }}>{n.commentaire || '—'}</td>
                           <td style={{ color: 'var(--text-light)', fontSize: '.8rem' }}>{new Date(n.date_saisie).toLocaleDateString('fr-FR')}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button className="btn btn-outline btn-sm" onClick={() => { setForm({ ...n }); setError(''); setModal({ id: n.id }); }}><Icons.Edit /></button>
+                              <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Supprimer ?')) { await api.supprimerNote(n.id); reloadNotesMat(); } }}><Icons.Trash /></button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -201,13 +167,26 @@ function NotesPage({ user }) {
           {error && <Alert type="error">{error}</Alert>}
           <div style={{ display: 'grid', gap: 14 }}>
             {!modal?.id && (
-              <div className="form-group">
-                <label>Étudiant</label>
-                <select value={form.inscription_id || ''} onChange={e => setForm(f => ({ ...f, inscription_id: e.target.value }))}>
-                  <option value="">— Choisir —</option>
-                  {inscrits.map(i => <option key={i.inscription_id} value={i.inscription_id}>{i.etudiant}</option>)}
-                </select>
-              </div>
+              <>
+                <div className="form-group">
+                  <label>Cours</label>
+                  <select value={form.cours_id || ''}
+                          onChange={e => setForm(f => ({ ...f, cours_id: e.target.value, inscription_id: '' }))}>
+                    <option value="">— Choisir —</option>
+                    {cours.filter(c => !selMatiere || c.matiere === selMatiere).map(c => (
+                      <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Étudiant</label>
+                  <select value={form.inscription_id || ''} onChange={e => setForm(f => ({ ...f, inscription_id: e.target.value }))}
+                          disabled={!form.cours_id}>
+                    <option value="">{form.cours_id ? '— Choisir —' : '— Choisir d\'abord un cours —'}</option>
+                    {inscrits.map(i => <option key={i.inscription_id} value={i.inscription_id}>{i.etudiant}</option>)}
+                  </select>
+                </div>
+              </>
             )}
             <div className="form-group">
               <label>Type d'évaluation</label>

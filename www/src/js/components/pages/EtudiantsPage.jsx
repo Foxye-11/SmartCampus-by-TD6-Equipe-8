@@ -8,6 +8,11 @@ function EtudiantsPage({ user }) {
   const [error, setError]         = useState('');
   const [departements, setDepts]  = useState([]);
   const [groupes, setGroupes]     = useState([]);
+  // Filtres recherche
+  const [filtreNiveau, setFNiv]   = useState('');
+  const [filtreGroupe, setFGrp]   = useState('');
+  const [filtreEcole, setFEco]    = useState('');
+  const [filtreDept, setFDept]    = useState('');
   // Création rapide d'un groupe de TD depuis le formulaire
   const [showNewGrp, setShowNewGrp] = useState(false);
   const [newGrpNom, setNewGrpNom]   = useState('');
@@ -40,7 +45,13 @@ function EtudiantsPage({ user }) {
     setLoading(true);
     try {
       const [res, dRes, gRes] = await Promise.all([
-        api.getEtudiants({ recherche: search }),
+        api.getEtudiants({
+          recherche:      search,
+          niveau:         filtreNiveau,
+          groupe_td_id:   filtreGroupe,
+          ecole:          filtreEcole,
+          departement_id: filtreDept,
+        }),
         api.getDepartements(),
         api.getGroupesTD(),
       ]);
@@ -55,9 +66,10 @@ function EtudiantsPage({ user }) {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Rechargement à chaque changement de filtre déroulant (la recherche texte reste manuelle)
+  useEffect(() => { load(); }, [filtreNiveau, filtreGroupe, filtreEcole, filtreDept]);
 
-  const handleSearch = e => { if (e && e.preventDefault) e.preventDefault(); load(); };
+  const resetFiltres = () => { setSearch(''); setFNiv(''); setFGrp(''); setFEco(''); setFDept(''); };
   // Le groupe de TD doit correspondre au niveau choisi : on le réinitialise.
   const openCreate   = () => { setForm({ niveau: 'L1', annee_scolaire: anneeDefaut }); setError(''); setModal('create'); };
   const openEdit     = e  => { setForm(e); setError(''); setModal('edit'); };
@@ -85,6 +97,7 @@ function EtudiantsPage({ user }) {
   };
 
   const niveaux = ['L1','L2','L3','M1','M2','BUT1','BUT2','BUT3','ING1','ING2','ING3'];
+  const selectStyle = { padding: '6px 10px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.84rem' };
 
   return (
     <div className="fade-in">
@@ -99,14 +112,33 @@ function EtudiantsPage({ user }) {
       </div>
 
       <div className="card">
-        <div className="card-header">
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8 }}>
-            <div className="search-bar">
-              <span className="search-icon"><Icons.Search /></span>
-              <input placeholder="Nom, prénom, numéro..." value={search} onChange={e => setSearch(e.target.value)} />
-            </div>
-            <button type="submit" className="btn btn-outline btn-sm">Rechercher</button>
-          </form>
+        <div className="card-header" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <div className="search-bar">
+            <span className="search-icon"><Icons.Search /></span>
+            <input placeholder="Nom, prénom, numéro..." value={search}
+                   onChange={e => setSearch(e.target.value)}
+                   onKeyDown={e => { if (e.key === 'Enter') load(); }} />
+          </div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => load()}>Rechercher</button>
+          <select value={filtreNiveau} onChange={e => { setFNiv(e.target.value); setFGrp(''); }} style={selectStyle}>
+            <option value="">Tous niveaux</option>
+            {niveaux.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+          <select value={filtreGroupe} onChange={e => setFGrp(e.target.value)} style={selectStyle}>
+            <option value="">Tous groupes TD</option>
+            {groupes.filter(g => !filtreNiveau || g.niveau === filtreNiveau).map(g => <option key={g.id} value={g.id}>{g.libelle}</option>)}
+          </select>
+          <select value={filtreEcole} onChange={e => setFEco(e.target.value)} style={selectStyle}>
+            <option value="">Toutes écoles</option>
+            {ecoles.map(ec => <option key={ec} value={ec}>{ec}</option>)}
+          </select>
+          <select value={filtreDept} onChange={e => setFDept(e.target.value)} style={selectStyle}>
+            <option value="">Tous départements</option>
+            {departements.map(d => <option key={d.id} value={d.id}>{d.nom}</option>)}
+          </select>
+          {(search || filtreNiveau || filtreGroupe || filtreEcole || filtreDept) && (
+            <button type="button" className="btn btn-outline btn-sm" onClick={resetFiltres}>Réinitialiser</button>
+          )}
         </div>
 
         {loading ? <Spinner /> : etudiants.length === 0 ? <EmptyState icon="🎓" message="Aucun étudiant trouvé." /> : (

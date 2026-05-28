@@ -1,25 +1,29 @@
 function PresencesPage({ user }) {
   const { useState, useEffect } = React;
-  const [resume, setResume]     = useState([]);
-  const [cours, setCours]       = useState([]);
-  const [selCours, setSel]      = useState('');
-  const [sessions, setSessions] = useState([]);
-  const [session, setSession]   = useState('');
-  const [presences, setPres]    = useState([]);
-  const [loading, setLoading]   = useState(false);
+  const [resume, setResume]       = useState([]);
+  const [matieres, setMat]        = useState([]);
+  const [selMatiere, setSelMat]   = useState('');
+  const [sessions, setSessions]   = useState([]);
+  const [session, setSession]     = useState('');
+  const [presences, setPres]      = useState([]);
+  const [loading, setLoading]     = useState(false);
 
   useEffect(() => {
     if (user.role === 'etudiant') {
       api.resumeAbsences(user.etudiant_id).then(r => setResume(r.data || []));
     } else {
-      const req = user.role === 'enseignant' ? api.coursEnseignant(user.enseignant_id) : api.getCours();
-      req.then(r => setCours(r.data || []));
+      api.getMatieres().then(r => setMat(r.data || []));
     }
   }, []);
 
   useEffect(() => {
-    if (selCours) { setSession(''); api.getSessionsCours(selCours).then(r => setSessions(r.data || [])); }
-  }, [selCours]);
+    setSession('');
+    if (selMatiere) {
+      api.getSessionsParMatiere(selMatiere).then(r => setSessions(Array.isArray(r.data) ? r.data : []));
+    } else {
+      setSessions([]);
+    }
+  }, [selMatiere]);
 
   useEffect(() => {
     if (session) { setLoading(true); api.presencesSession(session).then(r => { setPres(r.data || []); setLoading(false); }); }
@@ -70,16 +74,20 @@ function PresencesPage({ user }) {
     <div className="fade-in">
       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--navy)', marginBottom: 24 }}>Gestion des présences</h2>
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <select value={selCours} onChange={e => setSel(e.target.value)}
+        <select value={selMatiere} onChange={e => setSelMat(e.target.value)}
           style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 260 }}>
-          <option value="">— Sélectionner un cours —</option>
-          {cours.map(c => <option key={c.id} value={c.id}>{c.code} — {c.intitule}</option>)}
+          <option value="">— Sélectionner une matière —</option>
+          {matieres.map(m => <option key={m.matiere} value={m.matiere}>{m.matiere}</option>)}
         </select>
         {sessions.length > 0 && (
           <select value={session} onChange={e => setSession(e.target.value)}
-            style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 220 }}>
+            style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 320 }}>
             <option value="">— Sélectionner une séance —</option>
-            {sessions.map(s => <option key={s.id} value={s.id}>{joursAbr[s.jour_semaine - 1]} {s.heure_debut}–{s.heure_fin}{s.salle_nom ? ` · ${s.salle_nom}` : ''}</option>)}
+            {sessions.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.cours_code} · {joursAbr[s.jour_semaine - 1]} {s.heure_debut}–{s.heure_fin}{s.salle_nom ? ` · ${s.salle_nom}` : ''}
+              </option>
+            ))}
           </select>
         )}
       </div>

@@ -15,6 +15,12 @@ switch ($method) {
         if ($action === 'departements') { echo json_encode($controller->departements()); break; }
         if ($action === 'matieres') { echo json_encode($controller->matieres()); break; }
         if ($action === 'sessions' && $id) { echo json_encode($controller->sessionsParCours($id)); break; }
+        if ($action === 'sessions_matiere') {
+            $mat = $_GET['matiere'] ?? '';
+            if ($mat === '') { http_response_code(400); echo json_encode(['erreur' => 'Matière requise.']); break; }
+            echo json_encode($controller->sessionsParMatiere($mat));
+            break;
+        }
         if ($action === 'groupes' && $id) { echo json_encode($controller->groupesDuCours($id)); break; }
         if ($id) {
             $c = $controller->obtenir($id);

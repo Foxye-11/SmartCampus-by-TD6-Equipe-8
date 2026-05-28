@@ -27,6 +27,7 @@ class EtudiantController {
         if (!empty($filtres['niveau'])) { $sql .= ' AND et.niveau=:niveau'; $params[':niveau'] = $filtres['niveau']; }
         if (!empty($filtres['departement_id'])) { $sql .= ' AND et.departement_id=:did'; $params[':did'] = $filtres['departement_id']; }
         if (!empty($filtres['groupe_td_id'])) { $sql .= ' AND et.groupe_td_id=:gtd'; $params[':gtd'] = $filtres['groupe_td_id']; }
+        if (!empty($filtres['ecole'])) { $sql .= ' AND et.ecole=:eco'; $params[':eco'] = $filtres['ecole']; }
         if (!empty($filtres['recherche'])) {
             $sql .= ' AND (u.nom LIKE :r OR u.prenom LIKE :r OR et.numero_etudiant LIKE :r OR u.email LIKE :r)';
             $params[':r'] = '%' . $filtres['recherche'] . '%';

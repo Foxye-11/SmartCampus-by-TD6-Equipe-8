@@ -111,6 +111,7 @@ CREATE TABLE cours (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) NOT NULL UNIQUE,
     intitule VARCHAR(150) NOT NULL,
+    matiere VARCHAR(100),                -- regroupe plusieurs cours d'une même matière (filtres EDT/Notes)
     description TEXT,
     credits INT UNSIGNED NOT NULL DEFAULT 3,
     capacite_max INT UNSIGNED NOT NULL DEFAULT 30,

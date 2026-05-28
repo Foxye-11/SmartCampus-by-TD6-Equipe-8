@@ -3,6 +3,10 @@ services:
     build: .
     container_name: php-apache
     restart: unless-stopped
+
+    env_file:
+    - .env
+
     # Plus besoin d'exposer le port publiquement, Nginx s'en charge
     expose:
       - "80"

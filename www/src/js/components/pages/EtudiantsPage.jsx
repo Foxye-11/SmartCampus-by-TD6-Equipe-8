@@ -69,7 +69,15 @@ function EtudiantsPage({ user }) {
   // Rechargement à chaque changement de filtre déroulant (la recherche texte reste manuelle)
   useEffect(() => { load(); }, [filtreNiveau, filtreGroupe, filtreEcole, filtreDept]);
 
-  const resetFiltres = () => { setSearch(''); setFNiv(''); setFGrp(''); setFEco(''); setFDept(''); };
+  const resetFiltres = () => {
+    setSearch(''); setFNiv(''); setFGrp(''); setFEco(''); setFDept('');
+    // Recharge la liste sans attendre la mise à jour des états (search n'est pas dans le useEffect)
+    setLoading(true);
+    api.getEtudiants({}).then(r => {
+      setEtudiants(asArray(r.data));
+      setLoading(false);
+    });
+  };
   // Le groupe de TD doit correspondre au niveau choisi : on le réinitialise.
   const openCreate   = () => { setForm({ niveau: 'L1', annee_scolaire: anneeDefaut }); setError(''); setModal('create'); };
   const openEdit     = e  => { setForm(e); setError(''); setModal('edit'); };

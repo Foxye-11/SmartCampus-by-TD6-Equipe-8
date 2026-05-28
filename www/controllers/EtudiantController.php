@@ -29,8 +29,13 @@ class EtudiantController {
         if (!empty($filtres['groupe_td_id'])) { $sql .= ' AND et.groupe_td_id=:gtd'; $params[':gtd'] = $filtres['groupe_td_id']; }
         if (!empty($filtres['ecole'])) { $sql .= ' AND et.ecole=:eco'; $params[':eco'] = $filtres['ecole']; }
         if (!empty($filtres['recherche'])) {
-            $sql .= ' AND (u.nom LIKE :r OR u.prenom LIKE :r OR et.numero_etudiant LIKE :r OR u.email LIKE :r)';
-            $params[':r'] = '%' . $filtres['recherche'] . '%';
+            // PDO en mode non-émulé interdit la réutilisation d'un même placeholder
+            $sql .= ' AND (u.nom LIKE :r1 OR u.prenom LIKE :r2 OR et.numero_etudiant LIKE :r3 OR u.email LIKE :r4)';
+            $like = '%' . $filtres['recherche'] . '%';
+            $params[':r1'] = $like;
+            $params[':r2'] = $like;
+            $params[':r3'] = $like;
+            $params[':r4'] = $like;
         }
         $sql .= ' ORDER BY u.nom, u.prenom';
         $stmt = $this->pdo->prepare($sql);

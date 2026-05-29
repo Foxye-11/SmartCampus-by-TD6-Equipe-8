@@ -9,14 +9,30 @@ $controller = new EmploiDuTempsController();
 $role       = Auth::getRole();
 $id         = isset($_GET['id']) ? (int)$_GET['id'] : null;
 
+// Sous-action : lister les annees scolaires disponibles
+if ($method === 'GET' && isset($_GET['action']) && $_GET['action'] === 'annees') {
+    echo json_encode([
+        'annees'  => $controller->anneesDisponibles(),
+        'defaut'  => EmploiDuTempsController::ANNEE_DEFAUT,
+    ]);
+    return;
+}
+
+// Filtres communs (mode calendrier)
+$filtres = [
+    'annee_scolaire' => $_GET['annee_scolaire'] ?? EmploiDuTempsController::ANNEE_DEFAUT,
+    'date_debut'     => $_GET['date_debut'] ?? null,
+    'date_fin'       => $_GET['date_fin']   ?? null,
+];
+
 switch ($method) {
     case 'GET':
         if ($role === 'etudiant') {
-            echo json_encode($controller->emploiEtudiant($_SESSION['etudiant_id']));
+            echo json_encode($controller->emploiEtudiant($_SESSION['etudiant_id'], $filtres));
         } elseif ($role === 'enseignant') {
-            echo json_encode($controller->emploiEnseignant($_SESSION['enseignant_id']));
+            echo json_encode($controller->emploiEnseignant($_SESSION['enseignant_id'], $filtres));
         } else {
-            $filtres = [
+            $filtres += [
                 'cours_id'      => $_GET['cours_id']      ?? '',
                 'matiere'       => $_GET['matiere']       ?? '',
                 'enseignant_id' => $_GET['enseignant_id'] ?? '',

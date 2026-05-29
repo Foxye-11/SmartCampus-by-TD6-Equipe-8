@@ -36,7 +36,22 @@ class CoursController {
                         ) t) AS inscrits,
                        (SELECT GROUP_CONCAT(CONCAT(g.niveau, " ", g.nom) ORDER BY g.niveau, g.nom SEPARATOR ", ")
                         FROM cours_groupes cg JOIN groupes_td g ON g.id = cg.groupe_td_id
-                        WHERE cg.cours_id = c.id) AS groupes
+                        WHERE cg.cours_id = c.id) AS groupes,
+                       /* Creneau "modele" : jour de la semaine + plage horaire.
+                          Les seances datees etant toutes sur le meme creneau,
+                          on agrege en DISTINCT pour eviter les doublons. */
+                       (SELECT GROUP_CONCAT(DISTINCT
+                                CONCAT(
+                                    ELT(sc.jour_semaine,
+                                        "Lun.","Mar.","Mer.","Jeu.","Ven.","Sam.","Dim."),
+                                    " ",
+                                    TIME_FORMAT(sc.heure_debut, "%H:%i"),
+                                    "–",
+                                    TIME_FORMAT(sc.heure_fin,   "%H:%i"))
+                                ORDER BY sc.jour_semaine, sc.heure_debut
+                                SEPARATOR ", ")
+                        FROM sessions_cours sc
+                        WHERE sc.cours_id = c.id) AS creneau
                 FROM cours c
                 JOIN semestres s ON s.id = c.semestre_id
                 LEFT JOIN departements d ON d.id = c.departement_id

@@ -4,23 +4,20 @@ function EmploiDuTempsPage({ user }) {
   const [loading, setLoading]   = useState(true);
   const isAdmin = user.role === 'admin';
 
-  // ─── Sélecteur d'année scolaire (seule 2025-2026 disponible pour l'instant) ───
+  // ─── Sélecteur d'année scolaire (seule 2025-2026 disponible) ─────────
   const [anneesDispo, setAnneesDispo] = useState(['2025-2026']);
   const [annee, setAnnee]             = useState('2025-2026');
 
-  // ─── Navigation calendrier ─────────────────────────────────────────────
-  // currentDate = n'importe quelle date dans la semaine/mois affiché.
+  // ─── Date pivot (n'importe quelle date dans la semaine affichée) ──────
   const [currentDate, setCurrentDate] = useState(() => {
     const t = new Date();
-    // Si on est hors année scolaire, on se positionne au 1er sept 2025 par défaut.
     if (t < new Date(2025, 8, 1) || t > new Date(2026, 5, 30)) {
       return new Date(2025, 8, 1);
     }
     return t;
   });
-  const [view, setView] = useState('semaine');  // 'semaine' ou 'mois'
 
-  // ─── Filtres admin ─────────────────────────────────────────────────────
+  // ─── Filtres admin ────────────────────────────────────────────────────
   const [enseignants, setEns] = useState([]);
   const [etudiants, setEtus]  = useState([]);
   const [matieres, setMat]    = useState([]);
@@ -33,57 +30,52 @@ function EmploiDuTempsPage({ user }) {
   const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
   const startOfWeek = d => {
-    // lundi = début de semaine (FR)
     const day = (d.getDay() + 6) % 7;  // 0=lun ... 6=dim
     const m = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     m.setDate(m.getDate() - day);
     return m;
   };
-  const startOfMonth = d => new Date(d.getFullYear(), d.getMonth(), 1);
-  const endOfMonth   = d => new Date(d.getFullYear(), d.getMonth()+1, 0);
-  const jours  = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-  const joursAbr = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-  const moisFR = ['Janvier','Février','Mars','Avril','Mai','Juin',
-                  'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  const heures = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
+  const jours    = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const moisFR   = ['janvier','février','mars','avril','mai','juin',
+                    'juillet','août','septembre','octobre','novembre','décembre'];
+  const heures   = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
 
-  // ─── Range courant selon la vue ────────────────────────────────────────
-  const { dateDebut, dateFin, weekDays, monthGrid, monthLabel, weekLabel } = useMemo(() => {
+  // Bornes de l'année scolaire (1er sept N → 30 juin N+1)
+  const [yearStart, yearEnd] = useMemo(() => {
+    const [y1] = annee.split('-').map(Number);
+    return [new Date(y1, 8, 1), new Date(y1 + 1, 5, 30)];
+  }, [annee]);
+
+  // ─── Toutes les semaines de l'année scolaire (pour le sélecteur) ──────
+  const semainesDispo = useMemo(() => {
+    const list = [];
+    let ws = startOfWeek(yearStart);
+    while (ws <= yearEnd) {
+      const we = addDays(ws, 6);
+      list.push({
+        value: fmt(ws),
+        debut: new Date(ws),
+        fin:   we,
+        label: `Sem. du ${pad(ws.getDate())}/${pad(ws.getMonth()+1)} → ${pad(we.getDate())}/${pad(we.getMonth()+1)}/${we.getFullYear()}`,
+      });
+      ws = addDays(ws, 7);
+    }
+    return list;
+  }, [yearStart, yearEnd]);
+
+  // ─── Plage courante ───────────────────────────────────────────────────
+  const { dateDebut, dateFin, weekDays, weekLabel } = useMemo(() => {
     const ws = startOfWeek(currentDate);
     const we = addDays(ws, 6);
-    const ms = startOfMonth(currentDate);
-    const me = endOfMonth(currentDate);
-
-    // 7 jours de la semaine
     const wDays = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+    const wLabel = `Semaine du ${ws.getDate()} ${moisFR[ws.getMonth()]} au ${we.getDate()} ${moisFR[we.getMonth()]} ${we.getFullYear()}`;
+    return { dateDebut: fmt(ws), dateFin: fmt(we), weekDays: wDays, weekLabel: wLabel };
+  }, [currentDate]);
 
-    // Grille mensuelle (semaines complètes incluant débordements sur mois adjacents)
-    const gridStart = startOfWeek(ms);
-    const gridEnd   = addDays(startOfWeek(me), 6);
-    const days = [];
-    for (let d = new Date(gridStart); d <= gridEnd; d = addDays(d, 1)) days.push(new Date(d));
-
-    const wLabel = `Semaine du ${ws.getDate()} ${moisFR[ws.getMonth()].toLowerCase()} au ${we.getDate()} ${moisFR[we.getMonth()].toLowerCase()} ${we.getFullYear()}`;
-    const mLabel = `${moisFR[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-
-    return {
-      dateDebut: view === 'semaine' ? fmt(ws) : fmt(gridStart),
-      dateFin:   view === 'semaine' ? fmt(we) : fmt(gridEnd),
-      weekDays:  wDays,
-      monthGrid: days,
-      monthLabel: mLabel,
-      weekLabel: wLabel,
-    };
-  }, [currentDate, view]);
-
-  // ─── Chargement ────────────────────────────────────────────────────────
+  // ─── Chargement ───────────────────────────────────────────────────────
   const load = async () => {
     setLoading(true);
-    const params = {
-      annee_scolaire: annee,
-      date_debut: dateDebut,
-      date_fin: dateFin,
-    };
+    const params = { annee_scolaire: annee, date_debut: dateDebut, date_fin: dateFin };
     if (isAdmin) {
       if (filtreMatiere) params.matiere = filtreMatiere;
       if (filtrePersonne) {
@@ -96,7 +88,6 @@ function EmploiDuTempsPage({ user }) {
     setLoading(false);
   };
 
-  // Année scolaire disponibles
   useEffect(() => {
     api.getAnneesScolaires?.().then?.(r => {
       if (Array.isArray(r?.data?.annees) && r.data.annees.length > 0) {
@@ -106,7 +97,6 @@ function EmploiDuTempsPage({ user }) {
     }).catch?.(() => {});
   }, []);
 
-  // Référentiels filtre admin
   useEffect(() => {
     if (!isAdmin) return;
     Promise.all([api.getEnseignants(), api.getEtudiants({}), api.getMatieres()]).then(([e, et, m]) => {
@@ -120,19 +110,19 @@ function EmploiDuTempsPage({ user }) {
 
   const colors = ['#1b2d42','#2a4060','#1e5fa8','#2d7a4f','#c07a1a'];
 
-  // ─── Navigation ────────────────────────────────────────────────────────
-  const goPrev   = () => setCurrentDate(view === 'semaine' ? addDays(currentDate, -7)
-                                                            : new Date(currentDate.getFullYear(), currentDate.getMonth()-1, 1));
-  const goNext   = () => setCurrentDate(view === 'semaine' ? addDays(currentDate, 7)
-                                                            : new Date(currentDate.getFullYear(), currentDate.getMonth()+1, 1));
+  // ─── Navigation ───────────────────────────────────────────────────────
+  const goPrev   = () => setCurrentDate(addDays(currentDate, -7));
+  const goNext   = () => setCurrentDate(addDays(currentDate, 7));
   const goToday  = () => setCurrentDate(new Date());
-  const goStart  = () => setCurrentDate(new Date(2025, 8, 1));   // 1er sept. 2025
+  const goStart  = () => setCurrentDate(new Date(2025, 8, 1));
+  const goSemaine = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    setCurrentDate(new Date(y, m - 1, d));
+  };
 
   const selectStyle = { padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem' };
   const resetFiltres = () => { setFiltrePers(''); setFiltreMat(''); };
 
-  // ─── Helpers pour les cellules ─────────────────────────────────────────
-  // Sessions d'un jour précis (vue semaine) à une heure pivot
   const getCellSessions = (dayDate, heure) => {
     const iso = fmt(dayDate);
     return sessions.filter(s =>
@@ -140,19 +130,14 @@ function EmploiDuTempsPage({ user }) {
       s.heure_debut <= heure && s.heure_fin > heure
     );
   };
-  const getDaySessions = (dayDate) => {
-    const iso = fmt(dayDate);
-    return sessions.filter(s => (s.date || s.date_specifique) === iso)
-                   .sort((a,b) => (a.heure_debut || '').localeCompare(b.heure_debut || ''));
-  };
-
   const isToday = (d) => fmt(d) === fmt(new Date());
-  const isCurrentMonth = (d) => d.getMonth() === currentDate.getMonth();
 
-  // ─── Rendering ─────────────────────────────────────────────────────────
+  // Valeur courante du selecteur de semaine = lundi de la semaine en cours
+  const currentWeekISO = fmt(startOfWeek(currentDate));
+
   return (
     <div className="fade-in">
-      {/* Titre + sélecteur année + vue */}
+      {/* Titre + sélecteur d'année */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--navy)' }}>Emploi du temps</h2>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -160,31 +145,30 @@ function EmploiDuTempsPage({ user }) {
           <select value={annee} onChange={e => setAnnee(e.target.value)} style={selectStyle}>
             {anneesDispo.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <div className="cal-view-switch" style={{ display: 'inline-flex', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
-            <button onClick={() => setView('semaine')}
-              style={{ padding: '8px 14px', border: 0, background: view === 'semaine' ? 'var(--navy)' : 'var(--white)', color: view === 'semaine' ? '#fff' : 'var(--navy)', fontWeight: 600, cursor: 'pointer' }}>
-              Semaine
-            </button>
-            <button onClick={() => setView('mois')}
-              style={{ padding: '8px 14px', border: 0, background: view === 'mois' ? 'var(--navy)' : 'var(--white)', color: view === 'mois' ? '#fff' : 'var(--navy)', fontWeight: 600, cursor: 'pointer' }}>
-              Mois
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Navigation calendrier */}
+      {/* Navigation calendrier : boutons + sélecteur de semaine */}
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-header" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline btn-sm" onClick={goPrev}>← Précédent</button>
             <button className="btn btn-outline btn-sm" onClick={goToday}>Aujourd'hui</button>
             <button className="btn btn-outline btn-sm" onClick={goNext}>Suivant →</button>
             <button className="btn btn-outline btn-sm" onClick={goStart} title="Aller au début de l'année scolaire">Rentrée</button>
           </div>
-          <strong style={{ color: 'var(--navy)', fontFamily: 'var(--font-display)' }}>
-            {view === 'semaine' ? weekLabel : monthLabel}
-          </strong>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '.85rem', color: 'var(--text-mid)' }}>Aller à la semaine&nbsp;:</label>
+            <select value={currentWeekISO} onChange={e => goSemaine(e.target.value)}
+                    style={{ ...selectStyle, minWidth: 300 }}>
+              {semainesDispo.map(w => (
+                <option key={w.value} value={w.value}>{w.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ padding: '10px 16px', color: 'var(--navy)', fontFamily: 'var(--font-display)', fontWeight: 600, borderTop: '1px solid var(--cream-dark)' }}>
+          {weekLabel}
         </div>
       </div>
 
@@ -218,74 +202,40 @@ function EmploiDuTempsPage({ user }) {
         </div>
       )}
 
-      {/* Grille */}
+      {/* Grille semaine */}
       {loading ? <Spinner /> : (
-        view === 'semaine' ? (
-          <div style={{ overflowX: 'auto' }}>
-            <div className="edt-grid">
-              <div className="edt-header"></div>
-              {weekDays.slice(0, 5).map((d, i) => (
-                <div key={i} className="edt-header" style={isToday(d) ? { background: 'var(--navy-light)' } : undefined}>
-                  {jours[i]}<br/>
-                  <small style={{ fontSize: '.7rem', opacity: .8 }}>{pad(d.getDate())}/{pad(d.getMonth()+1)}</small>
-                </div>
-              ))}
-              {heures.map(h => (
-                <React.Fragment key={h}>
-                  <div className="edt-time-col">{h}</div>
-                  {weekDays.slice(0, 5).map((d, di) => {
-                    const cells = getCellSessions(d, h);
-                    return (
-                      <div key={di} className="edt-cell">
-                        {cells.map((s, i) => (
-                          <div key={s.session_id} className="edt-event" style={{ background: colors[i % colors.length] }}>
-                            <strong>{s.cours}</strong>
-                            <small>{s.heure_debut?.slice(0,5)}–{s.heure_fin?.slice(0,5)}</small>
-                            {s.salle && <small> · {s.salle}</small>}
-                            {s.enseignant && <small> · {s.enseignant}</small>}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })}
-                </React.Fragment>
-              ))}
-            </div>
-            {sessions.length === 0 && <div style={{ marginTop: 16 }}><EmptyState icon="📅" message="Aucune séance cette semaine." /></div>}
-          </div>
-        ) : (
-          // Vue mois
-          <div className="cal-month">
-            <div className="cal-month-grid">
-              {jours.map(j => <div key={j} className="edt-header">{j.slice(0,3)}</div>)}
-              {monthGrid.map((d, i) => {
-                const sess = getDaySessions(d);
-                const today = isToday(d);
-                const sameMonth = isCurrentMonth(d);
-                return (
-                  <div key={i} className="cal-day"
-                    style={{
-                      background: today ? 'rgba(30,95,168,.08)' : (sameMonth ? 'var(--white)' : 'var(--cream)'),
-                      opacity: sameMonth ? 1 : .55,
-                    }}>
-                    <div className="cal-day-num" style={{ fontWeight: today ? 700 : 500, color: today ? 'var(--navy)' : 'var(--text-mid)' }}>
-                      {d.getDate()}
+        <div style={{ overflowX: 'auto' }}>
+          <div className="edt-grid">
+            <div className="edt-header"></div>
+            {weekDays.slice(0, 5).map((d, i) => (
+              <div key={i} className="edt-header" style={isToday(d) ? { background: 'var(--navy-light)' } : undefined}>
+                {jours[i]}<br/>
+                <small style={{ fontSize: '.7rem', opacity: .8 }}>{pad(d.getDate())}/{pad(d.getMonth()+1)}</small>
+              </div>
+            ))}
+            {heures.map(h => (
+              <React.Fragment key={h}>
+                <div className="edt-time-col">{h}</div>
+                {weekDays.slice(0, 5).map((d, di) => {
+                  const cells = getCellSessions(d, h);
+                  return (
+                    <div key={di} className="edt-cell">
+                      {cells.map((s, i) => (
+                        <div key={s.session_id} className="edt-event" style={{ background: colors[i % colors.length] }}>
+                          <strong>{s.cours}</strong>
+                          <small>{s.heure_debut?.slice(0,5)}–{s.heure_fin?.slice(0,5)}</small>
+                          {s.salle && <small> · {s.salle}</small>}
+                          {s.enseignant && <small> · {s.enseignant}</small>}
+                        </div>
+                      ))}
                     </div>
-                    {sess.slice(0, 3).map((s, k) => (
-                      <div key={s.session_id} className="cal-day-event" style={{ background: colors[k % colors.length] }}>
-                        <small>{s.heure_debut?.slice(0,5)}</small> {s.cours}
-                      </div>
-                    ))}
-                    {sess.length > 3 && (
-                      <div className="cal-day-more">+{sess.length - 3} autre(s)</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {sessions.length === 0 && <div style={{ marginTop: 16 }}><EmptyState icon="📅" message="Aucune séance ce mois-ci." /></div>}
+                  );
+                })}
+              </React.Fragment>
+            ))}
           </div>
-        )
+          {sessions.length === 0 && <div style={{ marginTop: 16 }}><EmptyState icon="📅" message="Aucune séance cette semaine." /></div>}
+        </div>
       )}
     </div>
   );

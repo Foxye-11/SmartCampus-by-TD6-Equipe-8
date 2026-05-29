@@ -129,7 +129,7 @@ function CoursPage({ user }) {
             <table>
               <thead>
                 <tr>
-                  <th>Code</th><th>Intitulé</th><th>Semestre</th><th>Enseignant</th>
+                  <th>Code</th><th>Intitulé</th><th>Jour & heure</th><th>Enseignant</th>
                   <th>Groupes TD</th><th>Crédits</th><th>Inscrits</th><th>Statut</th>
                   {user.role === 'admin' && <th>Actions</th>}
                 </tr>
@@ -142,7 +142,7 @@ function CoursPage({ user }) {
                       <strong>{c.intitule}</strong>
                       {c.notes_verrouillees == 1 && <span className="badge badge-warning" style={{ marginLeft: 8 }}>🔒</span>}
                     </td>
-                    <td>{c.semestre}</td>
+                    <td>{c.creneau || <em style={{ color: 'var(--text-light)' }}>Non planifié</em>}</td>
                     <td>{c.enseignant || <em style={{ color: 'var(--text-light)' }}>Non assigné</em>}</td>
                     <td style={{ fontSize: '.82rem' }}>{c.groupes || '—'}</td>
                     <td><span className="badge badge-navy">{c.credits} ECTS</span></td>

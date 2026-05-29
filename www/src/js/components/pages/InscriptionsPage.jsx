@@ -50,13 +50,13 @@ function InscriptionsPage({ user }) {
           {suivis.length === 0 ? <EmptyState icon="📋" message="Vous n'êtes inscrit à aucun cours." /> : (
             <div className="table-wrapper">
               <table>
-                <thead><tr><th>Code</th><th>Cours</th><th>Semestre</th><th>Enseignant</th><th>Crédits</th><th>Statut</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Code</th><th>Cours</th><th>Jour & heure</th><th>Enseignant</th><th>Crédits</th><th>Statut</th><th>Actions</th></tr></thead>
                 <tbody>
                   {suivis.map(c => (
                     <tr key={c.inscription_id}>
                       <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{c.code}</code></td>
                       <td><strong>{c.intitule}</strong></td>
-                      <td>{c.semestre}</td>
+                      <td>{c.creneau || <em style={{ color: 'var(--text-light)' }}>Non planifié</em>}</td>
                       <td>{c.enseignant || '—'}</td>
                       <td><span className="badge badge-navy">{c.credits}</span></td>
                       <td><span className={`badge ${c.statut === 'active' ? 'badge-success' : 'badge-warning'}`}>{c.statut}</span></td>
@@ -73,13 +73,13 @@ function InscriptionsPage({ user }) {
           {disponibles.length === 0 ? <EmptyState icon="✅" message="Vous êtes inscrit à tous les cours disponibles." /> : (
             <div className="table-wrapper">
               <table>
-                <thead><tr><th>Code</th><th>Cours</th><th>Semestre</th><th>Enseignant</th><th>Places</th><th>Action</th></tr></thead>
+                <thead><tr><th>Code</th><th>Cours</th><th>Jour & heure</th><th>Enseignant</th><th>Places</th><th>Action</th></tr></thead>
                 <tbody>
                   {disponibles.map(c => (
                     <tr key={c.id}>
                       <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{c.code}</code></td>
                       <td><strong>{c.intitule}</strong></td>
-                      <td>{c.semestre}</td>
+                      <td>{c.creneau || <em style={{ color: 'var(--text-light)' }}>Non planifié</em>}</td>
                       <td>{c.enseignant || '—'}</td>
                       <td>{c.capacite_max - c.inscrits > 0 ? <span className="badge badge-success">{c.capacite_max - c.inscrits} place(s)</span> : <span className="badge badge-danger">Complet</span>}</td>
                       <td><button className="btn btn-gold btn-sm" onClick={() => handleInscrire(c.id)} disabled={c.inscrits >= c.capacite_max}>S'inscrire</button></td>

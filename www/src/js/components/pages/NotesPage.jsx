@@ -12,6 +12,9 @@ function NotesPage({ user }) {
   const [form, setForm]         = useState({});
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
+  const [opened, setOpened]     = useState({});  // cours_id -> bool (lignes dépliées)
+
+  const toggleOpen = (cid) => setOpened(o => ({ ...o, [cid]: !o[cid] }));
 
   useEffect(() => {
     api.getSemestres().then(r => {
@@ -93,17 +96,69 @@ function NotesPage({ user }) {
               <div className="card">
                 <div className="table-wrapper">
                   <table>
-                    <thead><tr><th>Code</th><th>Cours</th><th>Crédits</th><th>Moyenne</th><th>Mention</th></tr></thead>
+                    <thead><tr><th style={{ width: 32 }}></th><th>Code</th><th>Cours</th><th>Crédits</th><th>Moyenne</th><th>Mention</th></tr></thead>
                     <tbody>
-                      {(bulletin.cours || []).map(c => (
-                        <tr key={c.cours_id}>
-                          <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{c.code}</code></td>
-                          <td><strong>{c.intitule}</strong></td>
-                          <td><span className="badge badge-navy">{c.credits}</span></td>
-                          <td><strong>{c.moyenne ?? '—'}/20</strong></td>
-                          <td><span className={`badge ${getMentionBadge(c.mention)}`}>{c.mention}</span></td>
-                        </tr>
-                      ))}
+                      {(bulletin.cours || []).map(c => {
+                        const isOpen = !!opened[c.cours_id];
+                        const notes  = c.notes || [];
+                        return (
+                          <React.Fragment key={c.cours_id}>
+                            <tr style={{ cursor: 'pointer' }} onClick={() => toggleOpen(c.cours_id)}>
+                              <td style={{ textAlign: 'center', color: 'var(--navy)', fontWeight: 700, userSelect: 'none' }}>
+                                {isOpen ? '▼' : '▶'}
+                              </td>
+                              <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{c.code}</code></td>
+                              <td>
+                                <strong>{c.intitule}</strong>
+                                <br/><small style={{ color: 'var(--text-light)' }}>{notes.length} note{notes.length > 1 ? 's' : ''}</small>
+                              </td>
+                              <td><span className="badge badge-navy">{c.credits}</span></td>
+                              <td><strong>{c.moyenne ?? '—'}/20</strong></td>
+                              <td><span className={`badge ${getMentionBadge(c.mention)}`}>{c.mention}</span></td>
+                            </tr>
+                            {isOpen && (
+                              <tr>
+                                <td colSpan={6} style={{ background: 'var(--cream)', padding: 0 }}>
+                                  {notes.length === 0 ? (
+                                    <div style={{ padding: '14px 20px', color: 'var(--text-light)', fontStyle: 'italic', fontSize: '.85rem' }}>
+                                      Aucune note saisie pour ce cours.
+                                    </div>
+                                  ) : (
+                                    <div style={{ padding: '8px 16px' }}>
+                                      <table style={{ width: '100%', fontSize: '.85rem' }}>
+                                        <thead>
+                                          <tr style={{ color: 'var(--text-mid)' }}>
+                                            <th style={{ textAlign: 'left', padding: '6px 8px' }}>Type</th>
+                                            <th style={{ textAlign: 'center', padding: '6px 8px' }}>Note</th>
+                                            <th style={{ textAlign: 'center', padding: '6px 8px' }}>Coeff.</th>
+                                            <th style={{ textAlign: 'left', padding: '6px 8px' }}>Commentaire</th>
+                                            <th style={{ textAlign: 'right', padding: '6px 8px' }}>Date</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {notes.map(n => (
+                                            <tr key={n.id} style={{ borderTop: '1px solid var(--cream-dark)' }}>
+                                              <td style={{ padding: '6px 8px' }}>
+                                                <span className="badge badge-navy" style={{ textTransform: 'capitalize' }}>{n.type_evaluation}</span>
+                                              </td>
+                                              <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 600 }}>{Number(n.valeur).toFixed(2)}/20</td>
+                                              <td style={{ padding: '6px 8px', textAlign: 'center', color: 'var(--text-mid)' }}>×{n.coefficient}</td>
+                                              <td style={{ padding: '6px 8px', color: 'var(--text-mid)' }}>{n.commentaire || <em style={{ color: 'var(--text-light)' }}>—</em>}</td>
+                                              <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-light)' }}>
+                                                {new Date(n.date_saisie).toLocaleDateString('fr-FR')}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

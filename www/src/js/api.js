@@ -70,6 +70,8 @@ const api = {
   // Présences
   presencesEtudiant: (id, cours_id) => api.get('/presences.php', { action: 'etudiant', id, cours_id }),
   presencesSession:  (id) => api.get('/presences.php', { action: 'session', id }),
+  detailPresencesCours: (etudiantId, coursId) =>
+                       api.get('/presences.php', { action: 'detail_cours', id: etudiantId, cours_id: coursId }),
   resumeAbsences:    (id) => api.get('/presences.php', { action: 'resume',  id }),
   alertesAbsences:   (id) => api.get('/presences.php', { action: 'alertes', id }),
   enregistrerPresences: (d) => api.post('/presences.php', d),

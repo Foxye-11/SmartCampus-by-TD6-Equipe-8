@@ -19,6 +19,15 @@ switch ($method) {
             echo json_encode($controller->presencesEtudiant($id, $coursId));
         } elseif ($action === 'session' && $id) {
             echo json_encode($controller->presencesSession($id));
+        } elseif ($action === 'detail_cours' && $id) {
+            // $id = etudiant_id, ?cours_id requis
+            $coursId = isset($_GET['cours_id']) ? (int)$_GET['cours_id'] : 0;
+            if (!$coursId) {
+                http_response_code(400);
+                echo json_encode(['erreur' => 'cours_id requis.']);
+                break;
+            }
+            echo json_encode($controller->seancesEtudiantParCours($id, $coursId));
         } elseif ($action === 'resume' && $id) {
             echo json_encode($controller->resumeAbsences($id));
         } elseif ($action === 'alertes' && $id) {

@@ -75,6 +75,25 @@ class ReleveNotesController {
     }
 
     // -----------------------------------------------
+    // FPDF n'accepte que de l'ISO-8859-1 / Latin-1. Sans conversion,
+    // tous les accents UTF-8 ressortent en caractères bizarres ("Ã©", "Ã¨"…).
+    // On encapsule donc TOUT texte passé à $pdf->Cell / MultiCell via ce helper.
+    // -----------------------------------------------
+    private function l($s): string {
+        if ($s === null) return '';
+        $s = (string)$s;
+        // mb_convert_encoding gère les caractères UTF-8 non représentables en Latin-1
+        // de façon plus robuste qu'utf8_decode (qui les remplace par '?').
+        if (function_exists('mb_convert_encoding')) {
+            return mb_convert_encoding($s, 'ISO-8859-1', 'UTF-8');
+        }
+        if (function_exists('iconv')) {
+            return iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $s);
+        }
+        return utf8_decode($s);
+    }
+
+    // -----------------------------------------------
     // Générer le PDF via FPDF (sans dépendance Composer)
     // -----------------------------------------------
     public function genererPDF(int $etudiantId, int $semestreId): void {
@@ -99,10 +118,10 @@ class ReleveNotesController {
         // --- En-tête établissement ---
         $pdf->SetFont('Arial', 'B', 16);
         $pdf->SetTextColor(31, 78, 121);
-        $pdf->Cell(0, 10, 'SmartCampus', 0, 1, 'C');
+        $pdf->Cell(0, 10, $this->l('SmartCampus'), 0, 1, 'C');
         $pdf->SetFont('Arial', '', 10);
         $pdf->SetTextColor(100, 100, 100);
-        $pdf->Cell(0, 6, 'Relevé de notes officiel', 0, 1, 'C');
+        $pdf->Cell(0, 6, $this->l('Relevé de notes officiel'), 0, 1, 'C');
         $pdf->Ln(4);
 
         // Ligne séparatrice
@@ -115,7 +134,7 @@ class ReleveNotesController {
         $e = $donnees['etudiant'];
         $pdf->SetFont('Arial', 'B', 11);
         $pdf->SetTextColor(0, 0, 0);
-        $pdf->Cell(0, 7, 'Informations de l\'étudiant', 0, 1);
+        $pdf->Cell(0, 7, $this->l('Informations de l\'étudiant'), 0, 1);
         $pdf->SetFont('Arial', '', 10);
 
         $lignes = [
@@ -130,27 +149,27 @@ class ReleveNotesController {
 
         foreach ($lignes as [$label, $valeur]) {
             $pdf->SetFont('Arial', 'B', 10);
-            $pdf->Cell(55, 6, $label . ' :', 0, 0);
+            $pdf->Cell(55, 6, $this->l($label . ' :'), 0, 0);
             $pdf->SetFont('Arial', '', 10);
-            $pdf->Cell(0, 6, $valeur, 0, 1);
+            $pdf->Cell(0, 6, $this->l($valeur), 0, 1);
         }
 
         $pdf->Ln(4);
 
         // --- Tableau des notes ---
         $pdf->SetFont('Arial', 'B', 11);
-        $pdf->Cell(0, 7, 'Résultats par cours', 0, 1);
+        $pdf->Cell(0, 7, $this->l('Résultats par cours'), 0, 1);
         $pdf->Ln(2);
 
         // En-têtes tableau
         $pdf->SetFillColor(31, 78, 121);
         $pdf->SetTextColor(255, 255, 255);
         $pdf->SetFont('Arial', 'B', 9);
-        $pdf->Cell(10,  7, 'Code',    1, 0, 'C', true);
-        $pdf->Cell(70,  7, 'Intitulé', 1, 0, 'C', true);
-        $pdf->Cell(20,  7, 'Crédits', 1, 0, 'C', true);
-        $pdf->Cell(25,  7, 'Moyenne', 1, 0, 'C', true);
-        $pdf->Cell(55,  7, 'Mention', 1, 1, 'C', true);
+        $pdf->Cell(10,  7, $this->l('Code'),     1, 0, 'C', true);
+        $pdf->Cell(70,  7, $this->l('Intitulé'), 1, 0, 'C', true);
+        $pdf->Cell(20,  7, $this->l('Crédits'),  1, 0, 'C', true);
+        $pdf->Cell(25,  7, $this->l('Moyenne'),  1, 0, 'C', true);
+        $pdf->Cell(55,  7, $this->l('Mention'),  1, 1, 'C', true);
 
         // Lignes cours
         $pdf->SetTextColor(0, 0, 0);
@@ -160,11 +179,11 @@ class ReleveNotesController {
         foreach ($donnees['cours'] as $c) {
             $pdf->SetFillColor(235, 242, 250);
             $moyenne = $c['moyenne'] !== null ? number_format($c['moyenne'], 2) . '/20' : 'N/A';
-            $pdf->Cell(10,  6, $c['code'],      1, 0, 'C', $fill);
-            $pdf->Cell(70,  6, $c['intitule'],  1, 0, 'L', $fill);
-            $pdf->Cell(20,  6, $c['credits'],   1, 0, 'C', $fill);
-            $pdf->Cell(25,  6, $moyenne,        1, 0, 'C', $fill);
-            $pdf->Cell(55,  6, $c['mention'],   1, 1, 'C', $fill);
+            $pdf->Cell(10,  6, $this->l($c['code']),     1, 0, 'C', $fill);
+            $pdf->Cell(70,  6, $this->l($c['intitule']), 1, 0, 'L', $fill);
+            $pdf->Cell(20,  6, $this->l($c['credits']),  1, 0, 'C', $fill);
+            $pdf->Cell(25,  6, $this->l($moyenne),       1, 0, 'C', $fill);
+            $pdf->Cell(55,  6, $this->l($c['mention']),  1, 1, 'C', $fill);
 
             // Détail des évaluations
             if (!empty($c['notes'])) {
@@ -172,9 +191,9 @@ class ReleveNotesController {
                     $pdf->SetFont('Arial', 'I', 8);
                     $pdf->SetTextColor(80, 80, 80);
                     $pdf->Cell(10, 5, '', 0, 0);
-                    $pdf->Cell(70, 5, '  › ' . ucfirst($n['type_evaluation']), 0, 0);
-                    $pdf->Cell(20, 5, 'Coeff. ' . $n['coefficient'], 0, 0, 'C');
-                    $pdf->Cell(25, 5, number_format($n['valeur'], 2) . '/20', 0, 1, 'C');
+                    $pdf->Cell(70, 5, $this->l('  › ' . ucfirst($n['type_evaluation'])), 0, 0);
+                    $pdf->Cell(20, 5, $this->l('Coeff. ' . $n['coefficient']), 0, 0, 'C');
+                    $pdf->Cell(25, 5, $this->l(number_format($n['valeur'], 2) . '/20'), 0, 1, 'C');
                     $pdf->SetTextColor(0, 0, 0);
                 }
                 $pdf->SetFont('Arial', '', 9);
@@ -188,16 +207,16 @@ class ReleveNotesController {
         // --- Récapitulatif ---
         $pdf->SetFillColor(220, 230, 242);
         $pdf->SetFont('Arial', 'B', 10);
-        $pdf->Cell(100, 8, 'Moyenne générale :', 1, 0, 'R', true);
+        $pdf->Cell(100, 8, $this->l('Moyenne générale :'), 1, 0, 'R', true);
         $pdf->Cell(80,  8,
-            $donnees['moyenne_generale'] !== null
+            $this->l($donnees['moyenne_generale'] !== null
                 ? number_format($donnees['moyenne_generale'], 2) . '/20  —  ' . $donnees['mention_generale']
-                : 'N/A',
+                : 'N/A'),
             1, 1, 'C', true
         );
-        $pdf->Cell(100, 8, 'Crédits validés / total :', 1, 0, 'R', true);
+        $pdf->Cell(100, 8, $this->l('Crédits validés / total :'), 1, 0, 'R', true);
         $pdf->Cell(80,  8,
-            $donnees['credits_valides'] . ' / ' . $donnees['credits_total'] . ' ECTS',
+            $this->l($donnees['credits_valides'] . ' / ' . $donnees['credits_total'] . ' ECTS'),
             1, 1, 'C', true
         );
 
@@ -206,8 +225,8 @@ class ReleveNotesController {
         // --- Pied de page ---
         $pdf->SetFont('Arial', 'I', 8);
         $pdf->SetTextColor(120, 120, 120);
-        $pdf->Cell(0, 5, 'Document généré le ' . $donnees['date_generation'] . ' — SmartCampus', 0, 1, 'C');
-        $pdf->Cell(0, 5, 'Ce relevé est fourni à titre informatif.', 0, 1, 'C');
+        $pdf->Cell(0, 5, $this->l('Document généré le ' . $donnees['date_generation'] . ' — SmartCampus'), 0, 1, 'C');
+        $pdf->Cell(0, 5, $this->l('Ce relevé est fourni à titre informatif.'), 0, 1, 'C');
 
         // Envoi du PDF
         $nomFichier = 'releve_' . $e['numero_etudiant'] . '_' . $donnees['semestre']['libelle'] . '.pdf';

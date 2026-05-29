@@ -7,6 +7,24 @@ function PresencesPage({ user }) {
   const [session, setSession]     = useState('');
   const [presences, setPres]      = useState([]);
   const [loading, setLoading]     = useState(false);
+  // Vue étudiant : dépliage cours par cours + cache des séances chargées
+  const [openCours, setOpenCours] = useState({});      // {cours_id: bool}
+  const [detailCours, setDetailC] = useState({});      // {cours_id: [sessions...]}
+  const [loadingCours, setLoadC]  = useState({});      // {cours_id: bool}
+
+  const toggleCours = (coursId) => {
+    setOpenCours(o => ({ ...o, [coursId]: !o[coursId] }));
+    if (!detailCours[coursId]) {
+      setLoadC(l => ({ ...l, [coursId]: true }));
+      api.detailPresencesCours(user.etudiant_id, coursId).then(r => {
+        setDetailC(d => ({ ...d, [coursId]: Array.isArray(r.data) ? r.data : [] }));
+        setLoadC(l => ({ ...l, [coursId]: false }));
+      }).catch(() => {
+        setDetailC(d => ({ ...d, [coursId]: [] }));
+        setLoadC(l => ({ ...l, [coursId]: false }));
+      });
+    }
+  };
 
   useEffect(() => {
     if (user.role === 'etudiant') {
@@ -67,37 +85,117 @@ function PresencesPage({ user }) {
     return `${joursAbr[(dt.getDay() + 6) % 7]}. ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
   };
 
-  if (user.role === 'etudiant') return (
-    <div className="fade-in">
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--navy)', marginBottom: 24 }}>Mes présences</h2>
-      {resume.length === 0 ? <EmptyState icon="✅" message="Aucune donnée de présence." /> : (
-        <div className="card">
-          <div className="table-wrapper">
-            <table>
-              <thead><tr><th>Cours</th><th>Séances</th><th>Présent</th><th>Absent</th><th>Taux absence</th><th>Alerte</th></tr></thead>
-              <tbody>
-                {resume.map((r, i) => (
-                  <tr key={i}>
-                    <td><strong>{r.intitule}</strong><br /><small style={{ color: 'var(--text-light)' }}>{r.code}</small></td>
-                    <td>{r.total_seances}</td>
-                    <td><span className="badge badge-success">{r.presents}</span></td>
-                    <td><span className="badge badge-danger">{r.absents}</span></td>
-                    <td>
-                      <div>{r.taux_absence}%</div>
-                      <div className="presence-bar">
-                        <div className={`presence-bar-fill ${r.alerte ? 'alert' : 'ok'}`} style={{ width: `${Math.min(r.taux_absence, 100)}%` }}></div>
-                      </div>
-                    </td>
-                    <td>{r.alerte ? <span className="badge badge-danger">⚠️ Alerte</span> : <span className="badge badge-success">OK</span>}</td>
+  if (user.role === 'etudiant') {
+    const statutBadge = (statut) => {
+      if (!statut) return <span className="badge badge-navy">À venir</span>;
+      const map = {
+        present: ['badge-success', 'Présent'],
+        absent:  ['badge-danger',  'Absent'],
+        retard:  ['badge-warning', 'Retard'],
+        excuse:  ['badge-info',    'Excusé'],
+      };
+      const [cls, label] = map[statut] || ['badge-navy', statut];
+      return <span className={`badge ${cls}`}>{label}</span>;
+    };
+    const isPast = (iso) => iso && iso < new Date().toISOString().slice(0, 10);
+
+    return (
+      <div className="fade-in">
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--navy)', marginBottom: 24 }}>Mes présences</h2>
+        {resume.length === 0 ? <EmptyState icon="✅" message="Aucune donnée de présence." /> : (
+          <div className="card">
+            <div className="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style={{ width: 32 }}></th>
+                    <th>Cours</th><th>Séances</th><th>Présent</th><th>Absent</th>
+                    <th>Taux absence</th><th>Alerte</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {resume.map((r, i) => {
+                    const open = !!openCours[r.cours_id];
+                    const detail = detailCours[r.cours_id] || [];
+                    const isLoadingDetail = !!loadingCours[r.cours_id];
+                    return (
+                      <React.Fragment key={r.cours_id || i}>
+                        <tr style={{ cursor: 'pointer' }} onClick={() => toggleCours(r.cours_id)}>
+                          <td style={{ textAlign: 'center', color: 'var(--navy)', fontWeight: 700, userSelect: 'none' }}>
+                            {open ? '▼' : '▶'}
+                          </td>
+                          <td><strong>{r.intitule}</strong><br /><small style={{ color: 'var(--text-light)' }}>{r.code}</small></td>
+                          <td>{r.total_seances}</td>
+                          <td><span className="badge badge-success">{r.presents}</span></td>
+                          <td><span className="badge badge-danger">{r.absents}</span></td>
+                          <td>
+                            <div>{r.taux_absence}%</div>
+                            <div className="presence-bar">
+                              <div className={`presence-bar-fill ${r.alerte ? 'alert' : 'ok'}`} style={{ width: `${Math.min(r.taux_absence, 100)}%` }}></div>
+                            </div>
+                          </td>
+                          <td>{r.alerte ? <span className="badge badge-danger">⚠️ Alerte</span> : <span className="badge badge-success">OK</span>}</td>
+                        </tr>
+                        {open && (
+                          <tr>
+                            <td colSpan={7} style={{ background: 'var(--cream)', padding: 0 }}>
+                              {isLoadingDetail ? (
+                                <div style={{ padding: 12 }}><Spinner /></div>
+                              ) : detail.length === 0 ? (
+                                <div style={{ padding: '14px 20px', color: 'var(--text-light)', fontStyle: 'italic', fontSize: '.85rem' }}>
+                                  Aucune séance planifiée.
+                                </div>
+                              ) : (
+                                <div style={{ padding: '8px 16px' }}>
+                                  <table style={{ width: '100%', fontSize: '.85rem' }}>
+                                    <thead>
+                                      <tr style={{ color: 'var(--text-mid)' }}>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px' }}>Date</th>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px' }}>Horaire</th>
+                                        <th style={{ textAlign: 'left', padding: '6px 8px' }}>Salle</th>
+                                        <th style={{ textAlign: 'center', padding: '6px 8px' }}>Statut</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {detail.map(s => {
+                                        const inPast = isPast(s.date);
+                                        return (
+                                          <tr key={s.session_id} style={{ borderTop: '1px solid var(--cream-dark)' }}>
+                                            <td style={{ padding: '6px 8px' }}>
+                                              {s.date ? new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                                            </td>
+                                            <td style={{ padding: '6px 8px', color: 'var(--text-mid)' }}>
+                                              {s.heure_debut?.slice(0,5)}–{s.heure_fin?.slice(0,5)}
+                                            </td>
+                                            <td style={{ padding: '6px 8px', color: 'var(--text-mid)' }}>
+                                              {s.salle || <em style={{ color: 'var(--text-light)' }}>—</em>}
+                                            </td>
+                                            <td style={{ padding: '6px 8px', textAlign: 'center' }}>
+                                              {s.statut ? statutBadge(s.statut)
+                                                        : inPast ? <span className="badge badge-navy">Non enregistré</span>
+                                                                 : <span className="badge badge-navy">À venir</span>}
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="fade-in">

@@ -287,20 +287,39 @@ class NoteController {
         $moyenneGlobale = 0.0;
         $totalCredits  = 0;
 
+        // Requête détail (toutes les évaluations) que l'on annexe à chaque cours
+        $stmtNotes = $this->pdo->prepare(
+            'SELECT n.id, n.type_evaluation, n.valeur, n.coefficient,
+                    n.commentaire, n.date_saisie
+             FROM notes n
+             JOIN inscriptions i ON i.id = n.inscription_id
+             WHERE i.etudiant_id = :eid
+               AND i.cours_id = :cid
+               AND i.statut = "active"
+             ORDER BY n.date_saisie, n.type_evaluation'
+        );
+
         foreach ($coursSemestre as $c) {
             $moy = $this->calculerMoyenne($etudiantId, $c['cours_id']);
-            $bulletin[] = array_merge($c, $moy);
+            $stmtNotes->execute([':eid' => $etudiantId, ':cid' => $c['cours_id']]);
+            $detail = $stmtNotes->fetchAll();
+
+            $bulletin[] = array_merge($c, $moy, ['notes' => $detail]);
+
             if ($moy['moyenne'] !== null) {
                 $moyenneGlobale += $moy['moyenne'] * $c['credits'];
                 $totalCredits   += $c['credits'];
             }
         }
 
+        $moyenneFinale = $totalCredits > 0
+                          ? round($moyenneGlobale / $totalCredits, 2)
+                          : null;
+
         return [
-            'cours'          => $bulletin,
-            'moyenne_generale' => $totalCredits > 0
-                                  ? round($moyenneGlobale / $totalCredits, 2)
-                                  : null,
+            'cours'             => $bulletin,
+            'moyenne_generale'  => $moyenneFinale,
+            'mention_generale'  => $this->calculerMention($moyenneFinale),
         ];
     }
 

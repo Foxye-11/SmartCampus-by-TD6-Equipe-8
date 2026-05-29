@@ -21,22 +21,33 @@ function CoursPage({ user }) {
 
   const load = async () => {
     setLoading(true);
-    const [cRes, sRes, eRes, dRes, salRes, gRes, etuRes] = await Promise.all([
+    // APIs accessibles à tous : cours, semestres, départements, groupes TD.
+    // APIs admin/enseignant seulement : enseignants, salles, étudiants.
+    // Pour l'étudiant on ne lance pas ces dernières (sinon 403 → setX
+    // reçoit un objet erreur → .map() crashe → page blanche).
+    const safePromises = [
       api.getCours({ semestre_id: filtreSem, departement_id: filtreDept, groupe_td_id: filtreGroupe }),
       api.getSemestres(),
-      api.getEnseignants(),
       api.getDepartements(),
-      api.getSalles(),
       api.getGroupesTD(),
+    ];
+    const adminPromises = user.role !== 'etudiant' ? [
+      api.getEnseignants(),
+      api.getSalles(),
       api.getEtudiants({}),
-    ]);
-    setCours(cRes.data || []);
-    setSem(sRes.data || []);
-    setEns(eRes.data || []);
-    setDepts(dRes.data || []);
-    setSalles(salRes.data || []);
-    setGroupes(gRes.data || []);
-    setEtudiants(etuRes.data || []);
+    ] : [];
+
+    const [cRes, sRes, dRes, gRes, eRes, salRes, etuRes] =
+      await Promise.all([...safePromises, ...adminPromises]);
+
+    const arr = r => Array.isArray(r?.data) ? r.data : [];
+    setCours(arr(cRes));
+    setSem(arr(sRes));
+    setDepts(arr(dRes));
+    setGroupes(arr(gRes));
+    setEns(arr(eRes));
+    setSalles(arr(salRes));
+    setEtudiants(arr(etuRes));
     setLoading(false);
   };
 

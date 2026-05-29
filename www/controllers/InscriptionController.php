@@ -165,7 +165,19 @@ class InscriptionController {
                     d.nom AS departement,
                     CONCAT(u.prenom, " ", u.nom) AS enseignant,
                     (SELECT COUNT(*) FROM inscriptions i2
-                     WHERE i2.cours_id = c.id AND i2.statut = "active") AS inscrits
+                     WHERE i2.cours_id = c.id AND i2.statut = "active") AS inscrits,
+                    (SELECT GROUP_CONCAT(DISTINCT
+                              CONCAT(
+                                ELT(sc.jour_semaine,
+                                    "Lun.","Mar.","Mer.","Jeu.","Ven.","Sam.","Dim."),
+                                " ",
+                                TIME_FORMAT(sc.heure_debut, "%H:%i"),
+                                "–",
+                                TIME_FORMAT(sc.heure_fin,   "%H:%i"))
+                              ORDER BY sc.jour_semaine, sc.heure_debut
+                              SEPARATOR ", ")
+                     FROM sessions_cours sc
+                     WHERE sc.cours_id = c.id) AS creneau
              FROM cours c
              JOIN semestres s ON s.id = c.semestre_id
              LEFT JOIN departements d ON d.id = c.departement_id
@@ -192,7 +204,19 @@ class InscriptionController {
             'SELECT i.id AS inscription_id, i.date_inscription, i.statut,
                     c.code, c.intitule, c.credits,
                     s.libelle AS semestre,
-                    CONCAT(u.prenom, " ", u.nom) AS enseignant
+                    CONCAT(u.prenom, " ", u.nom) AS enseignant,
+                    (SELECT GROUP_CONCAT(DISTINCT
+                              CONCAT(
+                                ELT(sc.jour_semaine,
+                                    "Lun.","Mar.","Mer.","Jeu.","Ven.","Sam.","Dim."),
+                                " ",
+                                TIME_FORMAT(sc.heure_debut, "%H:%i"),
+                                "–",
+                                TIME_FORMAT(sc.heure_fin,   "%H:%i"))
+                              ORDER BY sc.jour_semaine, sc.heure_debut
+                              SEPARATOR ", ")
+                     FROM sessions_cours sc
+                     WHERE sc.cours_id = c.id) AS creneau
              FROM inscriptions i
              JOIN cours c ON c.id = i.cours_id
              JOIN semestres s ON s.id = c.semestre_id

@@ -159,6 +159,45 @@ class PresenceController {
     }
 
     // -----------------------------------------------
+    // Détail complet d'un cours pour un étudiant :
+    // TOUTES les séances (passées + à venir) chronologiquement,
+    // avec le statut de présence si elle a déjà été enregistrée.
+    // Pour les séances futures (ou non encore appelées), p.statut = NULL.
+    // -----------------------------------------------
+    public function seancesEtudiantParCours(int $etudiantId, int $coursId): array {
+        Auth::exiger('etudiant', 'enseignant', 'admin');
+
+        if (Auth::getRole() === 'etudiant' && $_SESSION['etudiant_id'] !== $etudiantId) {
+            return [];
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT sc.id              AS session_id,
+                    sc.date_specifique AS date,
+                    sc.jour_semaine,
+                    sc.heure_debut,
+                    sc.heure_fin,
+                    s.nom              AS salle,
+                    s.batiment,
+                    p.id               AS presence_id,
+                    p.statut,
+                    p.date_enregistrement
+             FROM inscriptions i
+             JOIN sessions_cours sc ON sc.cours_id = i.cours_id
+             LEFT JOIN salles s   ON s.id = sc.salle_id
+             LEFT JOIN presences p ON p.session_id = sc.id
+                                  AND p.inscription_id = i.id
+             WHERE i.etudiant_id = :eid
+               AND i.cours_id = :cid
+               AND i.statut = "active"
+               AND sc.date_specifique IS NOT NULL
+             ORDER BY sc.date_specifique, sc.heure_debut'
+        );
+        $stmt->execute([':eid' => $etudiantId, ':cid' => $coursId]);
+        return $stmt->fetchAll();
+    }
+
+    // -----------------------------------------------
     // Présences pour une session donnée (liste enseignant)
     // -----------------------------------------------
     public function presencesSession(int $sessionId): array {
@@ -192,7 +231,7 @@ class PresenceController {
         }
 
         $stmt = $this->pdo->prepare(
-            'SELECT c.code, c.intitule,
+            'SELECT c.id AS cours_id, c.code, c.intitule,
                     COUNT(p.id)                                         AS total_seances,
                     SUM(p.statut = "present")                           AS presents,
                     SUM(p.statut = "absent")                            AS absents,

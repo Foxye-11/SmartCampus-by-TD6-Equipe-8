@@ -564,6 +564,54 @@ tbody tr:last-child { border-bottom: none; }
 .edt-event strong { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .edt-event small { opacity: .75; }
 
+/* ─── Vue MOIS du calendrier ─── */
+.cal-month {
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0;
+}
+.cal-month-grid > .edt-header { padding: 8px 4px; font-size: .72rem; }
+.cal-day {
+  min-height: 96px;
+  border-top: 1px solid var(--cream-dark);
+  border-right: 1px solid var(--cream-dark);
+  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cal-day:nth-child(7n + 7) { border-right: 0; }
+.cal-day-num {
+  font-size: .78rem;
+  text-align: right;
+  margin-bottom: 2px;
+}
+.cal-day-event {
+  background: var(--navy-light);
+  color: var(--white);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: .68rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.cal-day-event small { opacity: .85; margin-right: 3px; }
+.cal-day-more {
+  font-size: .68rem;
+  color: var(--text-light);
+  font-style: italic;
+}
+.cal-view-switch button:hover { filter: brightness(1.08); }
+
 /* ══════════════════════════════════════════
    NOTES / BULLETIN
 ══════════════════════════════════════════ */

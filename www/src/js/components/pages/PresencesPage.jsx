@@ -18,25 +18,54 @@ function PresencesPage({ user }) {
 
   useEffect(() => {
     setSession('');
+    setPres([]);
     if (selMatiere) {
-      api.getSessionsParMatiere(selMatiere).then(r => setSessions(Array.isArray(r.data) ? r.data : []));
+      api.getSessionsParMatiere(selMatiere).then(r => {
+        const list = Array.isArray(r.data) ? r.data : [];
+        // Tri par date décroissante (séance la plus récente en premier),
+        // puis par heure de début. Les séances sans date passent en dernier.
+        list.sort((a, b) => {
+          const da = a.date_specifique || '';
+          const db = b.date_specifique || '';
+          if (da !== db) return db.localeCompare(da);
+          return (a.heure_debut || '').localeCompare(b.heure_debut || '');
+        });
+        setSessions(list);
+      });
     } else {
       setSessions([]);
     }
   }, [selMatiere]);
 
   useEffect(() => {
-    if (session) { setLoading(true); api.presencesSession(session).then(r => { setPres(r.data || []); setLoading(false); }); }
+    if (!session) { setPres([]); return; }
+    setLoading(true);
+    api.presencesSession(session).then(r => {
+      // r.data peut être {} (erreur PHP -> JSON vide) — toujours retomber sur []
+      setPres(Array.isArray(r.data) ? r.data : []);
+      setLoading(false);
+    }).catch(() => {
+      setPres([]);
+      setLoading(false);
+    });
   }, [session]);
 
   const handleStatut = async (presenceId, inscriptionId, statut) => {
     if (presenceId) await api.modifierPresence(presenceId, statut);
     else await api.enregistrerPresences({ session_id: parseInt(session), presences: [{ inscription_id: inscriptionId, statut }] });
-    api.presencesSession(session).then(r => setPres(r.data || []));
+    api.presencesSession(session).then(r => setPres(Array.isArray(r.data) ? r.data : []));
   };
 
   const statutColors = { present: 'badge-success', absent: 'badge-danger', retard: 'badge-warning', excuse: 'badge-info' };
   const joursAbr = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+  // Formatage compact d'une date YYYY-MM-DD -> "Lun. 25/05/2026"
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${joursAbr[(dt.getDay() + 6) % 7]}. ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+  };
 
   if (user.role === 'etudiant') return (
     <div className="fade-in">
@@ -81,11 +110,14 @@ function PresencesPage({ user }) {
         </select>
         {sessions.length > 0 && (
           <select value={session} onChange={e => setSession(e.target.value)}
-            style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 320 }}>
-            <option value="">— Sélectionner une séance —</option>
+            style={{ padding: '8px 12px', border: '1.5px solid var(--cream-dark)', borderRadius: 'var(--radius)', fontFamily: 'var(--font-body)', fontSize: '.88rem', minWidth: 380 }}>
+            <option value="">— Sélectionner une séance ({sessions.length}) —</option>
             {sessions.map(s => (
               <option key={s.id} value={s.id}>
-                {s.cours_code} · {joursAbr[s.jour_semaine - 1]} {s.heure_debut}–{s.heure_fin}{s.salle_nom ? ` · ${s.salle_nom}` : ''}
+                {s.date_specifique ? formatDate(s.date_specifique) : joursAbr[s.jour_semaine - 1]}
+                {' · '}{s.heure_debut?.slice(0,5)}–{s.heure_fin?.slice(0,5)}
+                {' · '}{s.cours_code}
+                {s.salle_nom ? ` · ${s.salle_nom}` : ''}
               </option>
             ))}
           </select>

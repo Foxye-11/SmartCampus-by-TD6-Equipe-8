@@ -80,9 +80,10 @@ const api = {
   creerGroupeTD:  (d)      => api.post('/references.php', d),
 
   // Emploi du temps
-  getEmploiDuTemps: (f) => api.get('/emploi_du_temps.php', f || {}),
-  creerSession:     (d) => api.post('/emploi_du_temps.php', d),
-  supprimerSession: (id) => api.delete(`/emploi_du_temps.php?id=${id}`),
+  getEmploiDuTemps:    (f) => api.get('/emploi_du_temps.php', f || {}),
+  getAnneesScolaires:  () => api.get('/emploi_du_temps.php', { action: 'annees' }),
+  creerSession:        (d) => api.post('/emploi_du_temps.php', d),
+  supprimerSession:    (id) => api.delete(`/emploi_du_temps.php?id=${id}`),
 
   // Messages
   reception:    (page) => api.get('/messages.php', { action: 'reception', page }),

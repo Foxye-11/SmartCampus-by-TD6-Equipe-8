@@ -74,6 +74,7 @@ const api = {
                        api.get('/presences.php', { action: 'detail_cours', id: etudiantId, cours_id: coursId }),
   resumeAbsences:    (id) => api.get('/presences.php', { action: 'resume',  id }),
   alertesAbsences:   (id) => api.get('/presences.php', { action: 'alertes', id }),
+  alertesEnseignant: (id) => api.get('/presences.php', { action: 'alertes_enseignant', id }),
   enregistrerPresences: (d) => api.post('/presences.php', d),
   modifierPresence:  (id, statut) => api.put(`/presences.php?id=${id}`, { statut }),
 

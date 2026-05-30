@@ -48,6 +48,7 @@ function Dashboard({ user }) {
           roleCalls = [
             safe(api.getEnseignant(user.enseignant_id)),
             safe(api.coursEnseignant(user.enseignant_id)),
+            safe(api.alertesEnseignant(user.enseignant_id)),
           ];
         } else { // admin
           roleCalls = [
@@ -204,6 +205,7 @@ function Dashboard({ user }) {
     );
   } else if (data.role === 'enseignant') {
     const cours = data.extra[1]?.data || [];
+    const alertes = Array.isArray(data.extra[2]?.data) ? data.extra[2].data : [];
     const inscrits = cours.reduce((s, c) => s + Number(c.inscrits || 0), 0);
     tiles = (
       <>
@@ -211,7 +213,9 @@ function Dashboard({ user }) {
         <Tile label="Étudiants suivis" value={inscrits} />
         <Tile label="Heures restantes" value={`${data.heuresRestantes} h`}
               sub={`d'ici le 30/06/2026 · ${data.heuresEffectuees} h effectuées`} tone="green" />
-        <Tile label="Messages non lus" value={data.msgsNonLus} />
+        <Tile label="Alertes absences" value={alertes.length}
+              sub={alertes.length > 0 ? 'étudiant(s) au-dessus du seuil' : 'aucun étudiant en alerte'}
+              tone={alertes.length > 0 ? 'red' : ''} />
       </>
     );
   } else {
@@ -267,6 +271,52 @@ function Dashboard({ user }) {
     );
   };
 
+  // ─── Étudiants en alerte d'absences (enseignant) ────────────────────
+  const AlertesAbsences = () => {
+    if (data.role !== 'enseignant') return null;
+    const alertes = Array.isArray(data.extra[2]?.data) ? data.extra[2].data : [];
+    if (alertes.length === 0) return null;
+    return (
+      <div className="card" style={{ marginTop: 24, borderLeft: '4px solid var(--danger)' }}>
+        <div className="card-header">
+          <span className="card-title">⚠️ Étudiants en alerte d'absences</span>
+          <span className="badge badge-danger">{alertes.length} étudiant{alertes.length > 1 ? 's' : ''}</span>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Étudiant</th>
+                <th>N° Étudiant</th>
+                <th>Cours</th>
+                <th style={{ textAlign: 'center' }}>Absences</th>
+                <th style={{ textAlign: 'center' }}>Taux</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alertes.map((a, i) => (
+                <tr key={`${a.cours_id}-${a.etudiant_id}-${i}`}>
+                  <td><strong>{a.etudiant}</strong></td>
+                  <td><code style={{ background: 'var(--cream)', padding: '2px 6px', borderRadius: 4, fontSize: '.82rem' }}>{a.numero_etudiant}</code></td>
+                  <td>
+                    <small style={{ color: 'var(--text-light)' }}>{a.code}</small><br/>
+                    {a.cours}
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className="badge badge-danger">{a.absents} / {a.total_seances}</span>
+                  </td>
+                  <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--danger)' }}>
+                    {a.taux_absence}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Notifications récentes ─────────────────────────────────────────
   const NotifList = () => {
     const recent = data.notifs.slice(0, 5);
@@ -316,6 +366,8 @@ function Dashboard({ user }) {
       <div className="stat-grid" style={{ marginTop: 24 }}>
         {tiles}
       </div>
+
+      <AlertesAbsences />
 
       <div className="dashboard-cols">
         <NextSessions />

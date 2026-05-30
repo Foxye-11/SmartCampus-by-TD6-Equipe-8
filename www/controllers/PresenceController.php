@@ -333,6 +333,38 @@ class PresenceController {
     }
 
     // -----------------------------------------------
+    // Étudiants en alerte d'absences pour TOUS les cours
+    // d'un enseignant (utilisé par le dashboard).
+    // -----------------------------------------------
+    public function alertesEnseignant(int $enseignantId): array {
+        Auth::exiger('enseignant', 'admin');
+
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id AS cours_id, c.code, c.intitule AS cours,
+                    et.id AS etudiant_id, et.numero_etudiant,
+                    CONCAT(u.prenom, " ", u.nom) AS etudiant,
+                    u.email,
+                    COUNT(p.id) AS total_seances,
+                    SUM(p.statut = "absent") AS absents,
+                    ROUND(SUM(p.statut = "absent") * 100.0 / COUNT(p.id), 1) AS taux_absence
+             FROM presences p
+             JOIN inscriptions i ON i.id = p.inscription_id
+             JOIN etudiants et   ON et.id = i.etudiant_id
+             JOIN utilisateurs u ON u.id = et.utilisateur_id
+             JOIN cours c        ON c.id = i.cours_id
+             WHERE c.enseignant_id = :eid AND i.statut = "active"
+             GROUP BY c.id, c.code, c.intitule, et.id, et.numero_etudiant, u.prenom, u.nom, u.email
+             HAVING taux_absence >= :seuil
+             ORDER BY taux_absence DESC, c.intitule, u.nom, u.prenom'
+        );
+        $stmt->execute([
+            ':eid'   => $enseignantId,
+            ':seuil' => self::SEUIL_ABSENCES,
+        ]);
+        return $stmt->fetchAll();
+    }
+
+    // -----------------------------------------------
     // RÈGLE MÉTIER : vérification du seuil d'absences
     // Crée une notification si le seuil est dépassé
     // -----------------------------------------------
@@ -351,13 +383,16 @@ class PresenceController {
         $taux = ((float)$row['absents'] / (float)$row['total']) * 100;
         if ($taux < self::SEUIL_ABSENCES) return;
 
-        // Récupérer l'étudiant et le cours
+        // Récupérer l'étudiant (avec son nom complet) et le cours
         $stmt = $this->pdo->prepare(
-            'SELECT et.utilisateur_id, c.intitule AS cours, c.enseignant_id,
+            'SELECT et.utilisateur_id, et.numero_etudiant,
+                    CONCAT(u.prenom, " ", u.nom) AS etudiant_nom,
+                    c.intitule AS cours, c.enseignant_id,
                     ens.utilisateur_id AS enseignant_uid
              FROM inscriptions i
-             JOIN etudiants et ON et.id = i.etudiant_id
-             JOIN cours c ON c.id = i.cours_id
+             JOIN etudiants et    ON et.id = i.etudiant_id
+             JOIN utilisateurs u  ON u.id = et.utilisateur_id
+             JOIN cours c         ON c.id = i.cours_id
              LEFT JOIN enseignants ens ON ens.id = c.enseignant_id
              WHERE i.id = :iid'
         );
@@ -373,12 +408,17 @@ class PresenceController {
         // Notifier l'étudiant
         $this->insererNotification($info['utilisateur_id'], 'alerte_absence', $contenu);
 
-        // Notifier l'enseignant
+        // Notifier l'enseignant — on nomme explicitement l'étudiant pour qu'il
+        // puisse identifier de qui il s'agit sans avoir à chercher.
         if ($info['enseignant_uid']) {
             $this->insererNotification(
                 $info['enseignant_uid'],
                 'alerte_absence',
-                'Un étudiant dépasse le seuil d\'absences en "' . $info['cours'] . '".'
+                sprintf(
+                    '%s (%s) dépasse le seuil d\'absences en "%s" : %.1f%%.',
+                    $info['etudiant_nom'], $info['numero_etudiant'],
+                    $info['cours'], $taux
+                )
             );
         }
     }

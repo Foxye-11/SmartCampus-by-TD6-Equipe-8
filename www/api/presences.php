@@ -32,6 +32,8 @@ switch ($method) {
             echo json_encode($controller->resumeAbsences($id));
         } elseif ($action === 'alertes' && $id) {
             echo json_encode($controller->etudiantsEnAlerte($id));
+        } elseif ($action === 'alertes_enseignant' && $id) {
+            echo json_encode($controller->alertesEnseignant($id));
         } else {
             http_response_code(400);
             echo json_encode(['erreur' => 'Action inconnue.']);

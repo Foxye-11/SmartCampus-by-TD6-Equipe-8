@@ -436,10 +436,12 @@ body {
 .dashboard-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-top: 24px;
+  gap: 28px;
+  margin-top: 28px;
 }
-@media (max-width: 900px) { .dashboard-cols { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .dashboard-cols { grid-template-columns: 1fr; gap: 20px; }
+}
 
 .card {
   background: var(--white);

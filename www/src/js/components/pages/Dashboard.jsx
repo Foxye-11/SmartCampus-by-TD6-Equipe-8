@@ -302,7 +302,7 @@ function Dashboard({ user }) {
     <div className="fade-in">
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--navy)' }}>
-          Bonjour, {user.prenom} 👋
+          Bonjour, {user.prenom}
         </h2>
         <p style={{ color: 'var(--text-mid)', marginTop: 4 }}>
           {data.role === 'etudiant'  && 'Voici un aperçu de votre scolarité.'}

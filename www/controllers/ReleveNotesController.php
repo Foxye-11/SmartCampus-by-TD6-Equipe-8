@@ -76,19 +76,43 @@ class ReleveNotesController {
 
     // -----------------------------------------------
     // FPDF n'accepte que de l'ISO-8859-1 / Latin-1. Sans conversion,
-    // tous les accents UTF-8 ressortent en caractères bizarres ("Ã©", "Ã¨"…).
-    // On encapsule donc TOUT texte passé à $pdf->Cell / MultiCell via ce helper.
+    // tous les accents UTF-8 ressortent en caractères bizarres ("Ã©", "Ã¨"…),
+    // et les caractères typographiques absents de Latin-1 (em-dash "—",
+    // chevron simple "›", guillemets courbes…) sont remplacés par "?" :
+    // d'où les "? Tp", "? Bien", "? SmartCampus" qu'on voit dans le PDF.
+    //
+    // On translitère ces caractères en équivalents ASCII avant l'encodage.
     // -----------------------------------------------
     private function l($s): string {
         if ($s === null) return '';
         $s = (string)$s;
-        // mb_convert_encoding gère les caractères UTF-8 non représentables en Latin-1
-        // de façon plus robuste qu'utf8_decode (qui les remplace par '?').
+
+        // Translittération des caractères typographiques absents de Latin-1.
+        $s = strtr($s, [
+            "\u{2014}" => '-',    // — em dash
+            "\u{2013}" => '-',    // – en dash
+            "\u{2212}" => '-',    // − minus sign
+            "\u{203A}" => '>',    // › single right-pointing angle
+            "\u{2039}" => '<',    // ‹ single left-pointing angle
+            "\u{201C}" => '"',    // “ left double quote
+            "\u{201D}" => '"',    // ” right double quote
+            "\u{201E}" => '"',    // „ low double quote
+            "\u{2018}" => "'",    // ‘ left single quote
+            "\u{2019}" => "'",    // ’ right single quote
+            "\u{2026}" => '...',  // … horizontal ellipsis
+            "\u{2022}" => '-',    // • bullet
+            "\u{2192}" => '->',   // → rightwards arrow
+            "\u{2190}" => '<-',   // ← leftwards arrow
+        ]);
+
+        // Iconv //TRANSLIT essaie de trouver un équivalent ASCII pour ce qui
+        // reste hors Latin-1 (à défaut : le caractère est simplement supprimé).
+        if (function_exists('iconv')) {
+            $r = @iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $s);
+            if ($r !== false) return $r;
+        }
         if (function_exists('mb_convert_encoding')) {
             return mb_convert_encoding($s, 'ISO-8859-1', 'UTF-8');
-        }
-        if (function_exists('iconv')) {
-            return iconv('UTF-8', 'ISO-8859-1//TRANSLIT//IGNORE', $s);
         }
         return utf8_decode($s);
     }

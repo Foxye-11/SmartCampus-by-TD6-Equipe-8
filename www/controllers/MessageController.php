@@ -165,9 +165,13 @@ class MessageController {
              JOIN utilisateurs exp  ON exp.id  = m.expediteur_id
              JOIN utilisateurs dest ON dest.id = m.destinataire_id
              WHERE m.id = :id
-               AND (m.destinataire_id = :uid OR m.expediteur_id = :uid)'
+               AND (m.destinataire_id = :uid_dest OR m.expediteur_id = :uid_exp)'
         );
-        $stmt->execute([':id' => $messageId, ':uid' => $_SESSION['user_id']]);
+        $stmt->execute([
+            ':id'       => $messageId,
+            ':uid_dest' => $_SESSION['user_id'],
+            ':uid_exp'  => $_SESSION['user_id'],
+        ]);
         $message = $stmt->fetch();
 
         if (!$message) {

@@ -70,7 +70,7 @@ const Router = {
    */
   pagesForRole(role) {
     const rolePages = {
-      admin:      ['dashboard','etudiants','enseignants','cours','emploi','notes','presences','messages','salles'],
+      admin:      ['dashboard','etudiants','enseignants','cours','emploi','notes','presences','messages','salles','statistiques'],
       enseignant: ['dashboard','etudiants','cours','emploi','notes','presences','messages'],
       etudiant:   ['dashboard','cours','inscriptions','emploi','notes','presences','messages'],
     };

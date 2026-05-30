@@ -24,7 +24,7 @@ function Topbar({ title, unreadNotifs, notifs, onMarkAllRead, onOpenAccount }) {
           onClick={onOpenAccount}
           title="Changer mon mot de passe"
         >
-          🔑 Mot de passe
+          Mot de passe
         </button>
         <div style={{ position: 'relative' }} ref={ref}>
           <button

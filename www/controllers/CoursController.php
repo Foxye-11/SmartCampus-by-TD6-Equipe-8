@@ -256,7 +256,37 @@ class CoursController {
     }
 
     public function semestres(): array {
-        return $this->pdo->query('SELECT * FROM semestres ORDER BY annee_scolaire, numero')->fetchAll();
+        // On expose aussi le nombre de cours rattachés (utile à l'écran d'archivage).
+        return $this->pdo->query(
+            'SELECT s.*,
+                    (SELECT COUNT(*) FROM cours c WHERE c.semestre_id = s.id) AS nb_cours
+             FROM semestres s
+             ORDER BY s.annee_scolaire DESC, s.numero'
+        )->fetchAll();
+    }
+
+    // -----------------------------------------------
+    // Archivage / désarchivage d'un semestre (admin).
+    // Un semestre archivé est en lecture seule : plus d'inscription possible
+    // (cf. InscriptionController, règle 5).
+    // -----------------------------------------------
+    public function archiverSemestre(int $semestreId, bool $archive): array {
+        Auth::exiger('admin');
+
+        $stmt = $this->pdo->prepare('SELECT id FROM semestres WHERE id = :id');
+        $stmt->execute([':id' => $semestreId]);
+        if (!$stmt->fetch()) {
+            return ['succes' => false, 'erreurs' => ['Semestre introuvable.']];
+        }
+
+        $upd = $this->pdo->prepare('UPDATE semestres SET archive = :a WHERE id = :id');
+        $upd->execute([':a' => $archive ? 1 : 0, ':id' => $semestreId]);
+
+        return [
+            'succes'  => true,
+            'archive' => $archive ? 1 : 0,
+            'message' => $archive ? 'Semestre archivé.' : 'Semestre réactivé.',
+        ];
     }
 
     public function departements(): array {

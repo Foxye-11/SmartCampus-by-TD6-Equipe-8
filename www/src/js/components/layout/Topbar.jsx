@@ -1,4 +1,4 @@
-function Topbar({ title, unreadNotifs, notifs, onMarkAllRead }) {
+function Topbar({ title, unreadNotifs, notifs, onMarkAllRead, onOpenAccount }) {
   const { useState, useEffect, useRef } = React;
   const [showNotifs, setShowNotifs] = useState(false);
   const ref = useRef();
@@ -19,6 +19,13 @@ function Topbar({ title, unreadNotifs, notifs, onMarkAllRead }) {
     <div className="topbar">
       <span className="topbar-title">{title}</span>
       <div className="topbar-actions">
+        <button
+          className="btn btn-outline btn-sm"
+          onClick={onOpenAccount}
+          title="Changer mon mot de passe"
+        >
+          🔑 Mot de passe
+        </button>
         <div style={{ position: 'relative' }} ref={ref}>
           <button
             className="btn btn-outline btn-sm"

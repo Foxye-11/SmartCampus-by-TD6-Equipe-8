@@ -22,6 +22,10 @@ const api = {
   login:  (email, mot_de_passe) => api.post('/login.php', { email, mot_de_passe }),
   logout: ()                     => api.post('/logout.php'),
 
+  // Compte (libre-service)
+  changerMotDePasse: (ancien, nouveau, confirmation) =>
+    api.put('/compte.php?action=mot_de_passe', { ancien, nouveau, confirmation }),
+
   // Étudiants
   getEtudiants:  (f) => api.get('/etudiants.php', f),
   getEtudiant:   (id) => api.get('/etudiants.php', { id }),
@@ -44,6 +48,7 @@ const api = {
   updateCours:  (id, d) => api.put(`/cours.php?id=${id}`, d),
   deleteCours:  (id) => api.delete(`/cours.php?id=${id}`),
   getSemestres: () => api.get('/cours.php', { action: 'semestres' }),
+  archiverSemestre: (id, archive) => api.put(`/cours.php?action=archiver_semestre&id=${id}`, { archive: archive ? 1 : 0 }),
   getDepartements: () => api.get('/cours.php', { action: 'departements' }),
   getMatieres:  () => api.get('/cours.php', { action: 'matieres' }),
   getSessionsCours: (id) => api.get('/cours.php', { id, action: 'sessions' }),
@@ -110,6 +115,9 @@ const api = {
   creerSalle: (d) => api.post('/salles.php', d),
   modifierSalle: (id, d) => api.put(`/salles.php?id=${id}`, d),
   supprimerSalle: (id) => api.delete(`/salles.php?id=${id}`),
+
+  // Statistiques académiques (admin)
+  getStatistiques: () => api.get('/statistiques.php'),
 
   // Relevé
   releveData: (etudiant_id, semestre_id) => api.get('/releve.php', { action: 'donnees', etudiant_id, semestre_id }),

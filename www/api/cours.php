@@ -43,7 +43,12 @@ switch ($method) {
     case 'PUT':
         if (!$id) { http_response_code(400); echo json_encode(['erreur'=>'ID requis.']); break; }
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
-        $r = $controller->modifier($id, $data);
+        if ($action === 'archiver_semestre') {
+            $archive = !empty($data['archive']);
+            $r = $controller->archiverSemestre($id, $archive);
+        } else {
+            $r = $controller->modifier($id, $data);
+        }
         http_response_code($r['succes'] ? 200 : 422);
         echo json_encode($r);
         break;

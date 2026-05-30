@@ -10,6 +10,7 @@ function Sidebar({ user, page, navigate, unreadMessages, onLogout }) {
     { key: 'presences',    label: 'Présences',         icon: <Icons.Attendance />, roles: ['admin','enseignant','etudiant'] },
     { key: 'messages',     label: 'Messagerie',        icon: <Icons.Messages />,   roles: ['admin','enseignant','etudiant'], badge: unreadMessages },
     { key: 'salles',       label: 'Salles',            icon: <Icons.Rooms />,      roles: ['admin'] },
+    { key: 'statistiques', label: 'Statistiques',      icon: <Icons.Dashboard />,  roles: ['admin'] },
   ].filter(i => i.roles.includes(user.role));
 
   const initials = ((user.prenom || '')[0] || '') + ((user.nom || '')[0] || '');

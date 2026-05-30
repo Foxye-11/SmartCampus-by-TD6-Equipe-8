@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   presences:    'Présences',
   messages:     'Messagerie',
   salles:       'Salles',
+  statistiques: 'Statistiques',
 };
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
   const [notifs, setNotifs]     = useState([]);
   const [unreadNotifs, setUN]   = useState(0);
   const [unreadMessages, setUM] = useState(0);
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -81,6 +83,7 @@ function App() {
       case 'presences':    return <PresencesPage user={user} />;
       case 'messages':     return <MessagesPage user={user} onUnreadChange={setUM} />;
       case 'salles':       return <SallesPage />;
+      case 'statistiques': return <StatistiquesPage user={user} />;
       default:             return <Dashboard user={user} />;
     }
   };
@@ -89,9 +92,10 @@ function App() {
     <div className="app-layout">
       <Sidebar user={user} page={page} navigate={navigate} unreadMessages={unreadMessages} onLogout={handleLogout} />
       <div className="main-content">
-        <Topbar title={PAGE_TITLES[page] || 'SmartCampus'} unreadNotifs={unreadNotifs} notifs={notifs} onMarkAllRead={handleMarkAllRead} />
+        <Topbar title={PAGE_TITLES[page] || 'SmartCampus'} unreadNotifs={unreadNotifs} notifs={notifs} onMarkAllRead={handleMarkAllRead} onOpenAccount={() => setShowAccount(true)} />
         <div className="page-body">{renderPage()}</div>
       </div>
+      {showAccount && <ChangePasswordModal onClose={() => setShowAccount(false)} />}
     </div>
   );
 }

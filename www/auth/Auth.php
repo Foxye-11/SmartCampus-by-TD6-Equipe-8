@@ -142,4 +142,56 @@ class Auth {
     public static function hasherMotDePasse(string $motDePasse): string {
         return password_hash($motDePasse, PASSWORD_BCRYPT, ['cost' => 12]);
     }
+
+    /**
+     * Retourne l'id de l'utilisateur connecté ou null.
+     */
+    public static function getUserId(): ?int {
+        self::startSession();
+        return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    }
+
+    /**
+     * Changement de mot de passe par l'utilisateur lui-même.
+     * Vérifie l'ancien mot de passe puis applique des règles de robustesse
+     * minimales (longueur, présence de lettres et de chiffres).
+     */
+    public static function changerMotDePasse(string $ancien, string $nouveau, string $confirmation): array {
+        self::startSession();
+
+        if (!self::estConnecte()) {
+            return ['succes' => false, 'erreur' => 'Non authentifié.'];
+        }
+
+        if (empty($ancien) || empty($nouveau) || empty($confirmation)) {
+            return ['succes' => false, 'erreur' => 'Tous les champs sont requis.'];
+        }
+        if ($nouveau !== $confirmation) {
+            return ['succes' => false, 'erreur' => 'La confirmation ne correspond pas au nouveau mot de passe.'];
+        }
+        if (strlen($nouveau) < 8) {
+            return ['succes' => false, 'erreur' => 'Le mot de passe doit contenir au moins 8 caractères.'];
+        }
+        if (!preg_match('/[A-Za-z]/', $nouveau) || !preg_match('/\d/', $nouveau)) {
+            return ['succes' => false, 'erreur' => 'Le mot de passe doit contenir au moins une lettre et un chiffre.'];
+        }
+
+        $pdo = getDB();
+        $stmt = $pdo->prepare('SELECT mot_de_passe FROM utilisateurs WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => self::getUserId()]);
+        $row = $stmt->fetch();
+
+        if (!$row || !password_verify($ancien, $row['mot_de_passe'])) {
+            return ['succes' => false, 'erreur' => 'Mot de passe actuel incorrect.'];
+        }
+        if (password_verify($nouveau, $row['mot_de_passe'])) {
+            return ['succes' => false, 'erreur' => 'Le nouveau mot de passe doit être différent de l\'ancien.'];
+        }
+
+        $hash = self::hasherMotDePasse($nouveau);
+        $upd = $pdo->prepare('UPDATE utilisateurs SET mot_de_passe = :mdp WHERE id = :id');
+        $upd->execute([':mdp' => $hash, ':id' => self::getUserId()]);
+
+        return ['succes' => true, 'message' => 'Mot de passe modifié avec succès.'];
+    }
 }

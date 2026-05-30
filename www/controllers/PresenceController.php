@@ -44,6 +44,16 @@ class PresenceController {
             }
         }
 
+        // Synchroniser les inscriptions implicites (cours_groupes) avant
+        // l'upsert : le front a pu construire la liste a partir d'une vue
+        // qui ne tenait pas compte des inscriptions auto-creees.
+        $stmt = $this->pdo->prepare('SELECT cours_id FROM sessions_cours WHERE id = :id');
+        $stmt->execute([':id' => $sessionId]);
+        $rowC = $stmt->fetch();
+        if ($rowC) {
+            $this->syncInscriptionsDesGroupes((int)$rowC['cours_id']);
+        }
+
         $statutsValides = ['present', 'absent', 'retard', 'excuse'];
         $erreurs        = [];
         $enregistres    = 0;
@@ -199,10 +209,28 @@ class PresenceController {
 
     // -----------------------------------------------
     // Présences pour une session donnée (liste enseignant)
+    //
+    // Un cours peut etre rattache a un groupe TD via 'cours_groupes'
+    // sans qu'il existe forcement une ligne 'inscriptions' pour chaque
+    // etudiant du groupe. Pour que la liste de prise d'appel reste
+    // complete, on materialise (lazily) ces inscriptions implicites
+    // avant de lire la table 'presences'.
     // -----------------------------------------------
     public function presencesSession(int $sessionId): array {
         Auth::exiger('enseignant', 'admin');
 
+        // 1) Recuperer le cours de la seance
+        $stmt = $this->pdo->prepare('SELECT cours_id FROM sessions_cours WHERE id = :id');
+        $stmt->execute([':id' => $sessionId]);
+        $row = $stmt->fetch();
+        if (!$row) return [];
+        $coursId = (int)$row['cours_id'];
+
+        // 2) Synchroniser les inscriptions implicites (via cours_groupes).
+        //    Idempotent grace a la cle UNIQUE (etudiant_id, cours_id).
+        $this->syncInscriptionsDesGroupes($coursId);
+
+        // 3) Lire les inscrits + statut de presence (LEFT JOIN sur presences)
         $stmt = $this->pdo->prepare(
             'SELECT p.id AS presence_id, p.statut,
                     et.numero_etudiant,
@@ -212,12 +240,30 @@ class PresenceController {
              JOIN etudiants et ON et.id = i.etudiant_id
              JOIN utilisateurs u ON u.id = et.utilisateur_id
              LEFT JOIN presences p ON p.inscription_id = i.id AND p.session_id = :sid
-             JOIN sessions_cours sc ON sc.cours_id = i.cours_id
-             WHERE sc.id = :sid AND i.statut = "active"
+             WHERE i.cours_id = :cid AND i.statut = "active"
              ORDER BY u.nom, u.prenom'
         );
-        $stmt->execute([':sid' => $sessionId]);
+        $stmt->execute([':sid' => $sessionId, ':cid' => $coursId]);
         return $stmt->fetchAll();
+    }
+
+    // -----------------------------------------------
+    // Materialise les "inscriptions implicites" : pour chaque etudiant
+    // dont le groupe TD est affecte au cours via cours_groupes, on cree
+    // (si elle n'existe pas) la ligne 'inscriptions' correspondante.
+    // L'UNIQUE KEY (etudiant_id, cours_id) garantit l'idempotence.
+    // -----------------------------------------------
+    private function syncInscriptionsDesGroupes(int $coursId): void {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO inscriptions (etudiant_id, cours_id, statut)
+             SELECT DISTINCT et.id, :cid_select, "active"
+             FROM etudiants et
+             JOIN cours_groupes cg ON cg.groupe_td_id = et.groupe_td_id
+             JOIN utilisateurs u ON u.id = et.utilisateur_id
+             WHERE cg.cours_id = :cid_where AND u.actif = 1
+             ON DUPLICATE KEY UPDATE inscriptions.id = inscriptions.id'
+        );
+        $stmt->execute([':cid_select' => $coursId, ':cid_where' => $coursId]);
     }
 
     // -----------------------------------------------

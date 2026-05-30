@@ -235,6 +235,11 @@ class InscriptionController {
     public function etudiantsDuCours(int $coursId): array {
         Auth::exiger('enseignant', 'admin');
 
+        // Materialiser les inscriptions implicites (via cours_groupes)
+        // avant de lire, sinon les etudiants rattaches par groupe TD
+        // mais sans ligne 'inscriptions' n'apparaitraient pas.
+        $this->syncInscriptionsDesGroupes($coursId);
+
         $stmt = $this->pdo->prepare(
             'SELECT i.id AS inscription_id, i.date_inscription,
                     et.numero_etudiant, et.niveau,
@@ -248,6 +253,25 @@ class InscriptionController {
         );
         $stmt->execute([':cid' => $coursId]);
         return $stmt->fetchAll();
+    }
+
+    // -----------------------------------------------
+    // Materialise les "inscriptions implicites" : pour chaque etudiant
+    // dont le groupe TD est affecte au cours via cours_groupes, on cree
+    // (si elle n'existe pas) la ligne 'inscriptions' correspondante.
+    // L'UNIQUE KEY (etudiant_id, cours_id) garantit l'idempotence.
+    // -----------------------------------------------
+    private function syncInscriptionsDesGroupes(int $coursId): void {
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO inscriptions (etudiant_id, cours_id, statut)
+             SELECT DISTINCT et.id, :cid_select, "active"
+             FROM etudiants et
+             JOIN cours_groupes cg ON cg.groupe_td_id = et.groupe_td_id
+             JOIN utilisateurs u ON u.id = et.utilisateur_id
+             WHERE cg.cours_id = :cid_where AND u.actif = 1
+             ON DUPLICATE KEY UPDATE inscriptions.id = inscriptions.id'
+        );
+        $stmt->execute([':cid_select' => $coursId, ':cid_where' => $coursId]);
     }
 
     // -----------------------------------------------

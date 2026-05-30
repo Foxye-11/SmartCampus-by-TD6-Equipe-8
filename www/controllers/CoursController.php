@@ -59,6 +59,15 @@ class CoursController {
                 LEFT JOIN utilisateurs u ON u.id = e.utilisateur_id
                 WHERE 1=1';
         $params = [];
+
+        // RESTRICTION ENSEIGNANT : ne voir que ses propres cours.
+        if (Auth::getRole() === 'enseignant') {
+            $sql .= ' AND c.enseignant_id = (
+                SELECT id FROM enseignants WHERE utilisateur_id = :tuid LIMIT 1
+            )';
+            $params[':tuid'] = $_SESSION['user_id'];
+        }
+
         if ($semestreId) { $sql .= ' AND c.semestre_id = :sid'; $params[':sid'] = $semestreId; }
         if ($departementId) { $sql .= ' AND c.departement_id = :did'; $params[':did'] = $departementId; }
         if ($groupeTdId) {
@@ -256,6 +265,19 @@ class CoursController {
 
     // Liste des matières distinctes (pour les filtres « par matière »)
     public function matieres(): array {
+        // RESTRICTION ENSEIGNANT : seules les matieres qu'il enseigne.
+        if (Auth::getRole() === 'enseignant') {
+            $stmt = $this->pdo->prepare(
+                "SELECT DISTINCT c.matiere
+                 FROM cours c
+                 JOIN enseignants e ON e.id = c.enseignant_id
+                 WHERE c.matiere IS NOT NULL AND c.matiere <> ''
+                   AND e.utilisateur_id = :tuid
+                 ORDER BY c.matiere"
+            );
+            $stmt->execute([':tuid' => $_SESSION['user_id']]);
+            return $stmt->fetchAll();
+        }
         return $this->pdo->query(
             "SELECT DISTINCT matiere FROM cours
              WHERE matiere IS NOT NULL AND matiere <> ''
@@ -265,17 +287,27 @@ class CoursController {
 
     // Séances de tous les cours partageant une matière (pour Présences par matière)
     public function sessionsParMatiere(string $matiere): array {
-        $stmt = $this->pdo->prepare(
-            'SELECT sc.id, sc.jour_semaine, sc.heure_debut, sc.heure_fin, sc.date_specifique,
-                    sc.cours_id, c.code AS cours_code, c.intitule AS cours_intitule,
-                    s.nom AS salle_nom, s.batiment
-             FROM sessions_cours sc
-             JOIN cours c ON c.id = sc.cours_id
-             LEFT JOIN salles s ON s.id = sc.salle_id
-             WHERE c.matiere = :mat
-             ORDER BY sc.jour_semaine, sc.heure_debut'
-        );
-        $stmt->execute([':mat' => $matiere]);
+        // RESTRICTION ENSEIGNANT : seances de ses propres cours uniquement
+        // (meme si la matiere est partagee avec un autre enseignant).
+        $sql = 'SELECT sc.id, sc.jour_semaine, sc.heure_debut, sc.heure_fin, sc.date_specifique,
+                       sc.cours_id, c.code AS cours_code, c.intitule AS cours_intitule,
+                       s.nom AS salle_nom, s.batiment
+                FROM sessions_cours sc
+                JOIN cours c ON c.id = sc.cours_id
+                LEFT JOIN salles s ON s.id = sc.salle_id
+                WHERE c.matiere = :mat';
+        $params = [':mat' => $matiere];
+
+        if (Auth::getRole() === 'enseignant') {
+            $sql .= ' AND c.enseignant_id = (
+                SELECT id FROM enseignants WHERE utilisateur_id = :tuid LIMIT 1
+            )';
+            $params[':tuid'] = $_SESSION['user_id'];
+        }
+
+        $sql .= ' ORDER BY sc.date_specifique, sc.heure_debut';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll();
     }
 

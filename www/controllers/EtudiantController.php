@@ -24,6 +24,27 @@ class EtudiantController {
                 LEFT JOIN groupes_td g ON g.id = et.groupe_td_id
                 WHERE 1=1';
         $params = [];
+
+        // RESTRICTION ENSEIGNANT : ne voir que les etudiants inscrits a un
+        // de ses cours, soit via inscription directe, soit via un groupe TD
+        // affecte a l'un de ses cours.
+        if (Auth::getRole() === 'enseignant') {
+            $sql .= ' AND et.id IN (
+                SELECT i.etudiant_id FROM inscriptions i
+                JOIN cours c ON c.id = i.cours_id
+                JOIN enseignants e ON e.id = c.enseignant_id
+                WHERE e.utilisateur_id = :tuid AND i.statut = "active"
+                UNION
+                SELECT et2.id FROM etudiants et2
+                JOIN cours_groupes cg ON cg.groupe_td_id = et2.groupe_td_id
+                JOIN cours c2 ON c2.id = cg.cours_id
+                JOIN enseignants e2 ON e2.id = c2.enseignant_id
+                WHERE e2.utilisateur_id = :tuid2
+            )';
+            $params[':tuid']  = $_SESSION['user_id'];
+            $params[':tuid2'] = $_SESSION['user_id'];
+        }
+
         if (!empty($filtres['niveau'])) { $sql .= ' AND et.niveau=:niveau'; $params[':niveau'] = $filtres['niveau']; }
         if (!empty($filtres['departement_id'])) { $sql .= ' AND et.departement_id=:did'; $params[':did'] = $filtres['departement_id']; }
         if (!empty($filtres['groupe_td_id'])) { $sql .= ' AND et.groupe_td_id=:gtd'; $params[':gtd'] = $filtres['groupe_td_id']; }

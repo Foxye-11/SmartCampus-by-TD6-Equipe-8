@@ -238,28 +238,16 @@ class MessageController {
             );
             $stmt->execute([':eid' => $etudiantId, ':uid' => $uid]);
         } elseif ($role === 'enseignant') {
-            // Ses étudiants + admins
-            $enseignantId = $_SESSION['enseignant_id'];
+            // Un enseignant peut écrire à n'importe quel utilisateur actif
+            // (étudiants, autres enseignants, administration).
             $stmt = $this->pdo->prepare(
-                'SELECT DISTINCT u.id, CONCAT(u.prenom, " ", u.nom) AS nom_complet,
-                        r.nom AS role
+                'SELECT u.id, CONCAT(u.prenom, " ", u.nom) AS nom_complet, r.nom AS role
                  FROM utilisateurs u
                  JOIN roles r ON r.id = u.role_id
-                 WHERE u.actif = 1
-                   AND (
-                       r.nom = "admin"
-                       OR u.id IN (
-                           SELECT et.utilisateur_id
-                           FROM etudiants et
-                           JOIN inscriptions i ON i.etudiant_id = et.id
-                           JOIN cours c ON c.id = i.cours_id
-                           WHERE c.enseignant_id = :eid AND i.statut = "active"
-                       )
-                   )
-                   AND u.id != :uid
-                 ORDER BY nom_complet'
+                 WHERE u.actif = 1 AND u.id != :uid
+                 ORDER BY r.nom, nom_complet'
             );
-            $stmt->execute([':eid' => $enseignantId, ':uid' => $uid]);
+            $stmt->execute([':uid' => $uid]);
         } else {
             // Admin : tous les utilisateurs actifs
             $stmt = $this->pdo->prepare(

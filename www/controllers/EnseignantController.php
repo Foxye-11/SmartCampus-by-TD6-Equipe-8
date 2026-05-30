@@ -119,7 +119,7 @@ class EnseignantController {
 
     public function coursDEnseignant(int $id): array {
         $stmt = $this->pdo->prepare(
-            'SELECT c.id, c.code, c.intitule, c.credits, s.libelle AS semestre,
+            'SELECT c.id, c.code, c.intitule, c.matiere, c.credits, s.libelle AS semestre,
                     (SELECT COUNT(*) FROM inscriptions i
                      WHERE i.cours_id = c.id AND i.statut = "active") AS inscrits
              FROM cours c

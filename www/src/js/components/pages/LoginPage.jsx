@@ -18,7 +18,10 @@ function LoginPage({ onLogin }) {
   return (
     <div className="login-page">
       <div className="login-left">
-        <div className="login-logo">Smart<span>Campus</span></div>
+        <div className="login-logo">
+          <img src="assets/logo.webp" alt="SmartCampus" className="login-logo-img" />
+          Smart<span>Campus</span>
+        </div>
         <div className="login-tagline">Gérer · Apprendre · Réussir</div>
         <h1 className="login-headline">
           La gestion académique<br /><em>de notre époque</em>

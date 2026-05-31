@@ -82,6 +82,9 @@ body {
 }
 
 .login-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   font-family: var(--font-display);
   font-size: 2.4rem;
   color: var(--white);
@@ -89,6 +92,13 @@ body {
   margin-bottom: 8px;
 }
 .login-logo span { color: var(--gold); }
+.login-logo-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
 
 .login-tagline {
   color: var(--text-light);
@@ -251,11 +261,21 @@ body {
   border-bottom: 1px solid rgba(255,255,255,.07);
 }
 .sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-display);
   font-size: 1.4rem;
   color: var(--white);
 }
 .sidebar-brand span { color: var(--gold); }
+.sidebar-brand-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
 .sidebar-role {
   font-size: .72rem;
   letter-spacing: .1em;

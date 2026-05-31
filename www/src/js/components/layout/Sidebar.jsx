@@ -19,8 +19,8 @@ function Sidebar({ user, page, navigate, unreadMessages, onLogout }) {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="sidebar-brand">
+          <span className="sidebar-brand-text">Smart<span>Campus</span></span>
           <img src="assets/logo.webp" alt="SmartCampus" className="sidebar-brand-img" />
-          Smart<span>Campus</span>
         </div>
         <div className="sidebar-role">
           {user.role === 'admin' ? 'Administrateur' : user.role === 'enseignant' ? 'Enseignant' : 'Étudiant'}

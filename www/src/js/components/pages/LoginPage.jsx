@@ -19,8 +19,8 @@ function LoginPage({ onLogin }) {
     <div className="login-page">
       <div className="login-left">
         <div className="login-logo">
+          <span className="login-logo-text">Smart<span>Campus</span></span>
           <img src="assets/logo.webp" alt="SmartCampus" className="login-logo-img" />
-          Smart<span>Campus</span>
         </div>
         <div className="login-tagline">Gérer · Apprendre · Réussir</div>
         <h1 className="login-headline">

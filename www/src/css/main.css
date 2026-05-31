@@ -84,19 +84,19 @@ body {
 .login-logo {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 20px;
   font-family: var(--font-display);
   font-size: 2.4rem;
   color: var(--white);
   letter-spacing: -.02em;
   margin-bottom: 8px;
 }
-.login-logo span { color: var(--gold); }
+.login-logo-text span { color: var(--gold); }
 .login-logo-img {
-  width: 52px;
-  height: 52px;
+  width: 96px;
+  height: 96px;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 18px;
   flex-shrink: 0;
 }
 
@@ -130,7 +130,8 @@ body {
 }
 
 .login-right {
-  width: 460px;
+  width: 560px;
+  flex-shrink: 0;
   background: var(--white);
   display: flex;
   flex-direction: column;
@@ -268,12 +269,12 @@ body {
   font-size: 1.4rem;
   color: var(--white);
 }
-.sidebar-brand span { color: var(--gold); }
+.sidebar-brand-text span { color: var(--gold); }
 .sidebar-brand-img {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
-  border-radius: 7px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
 .sidebar-role {

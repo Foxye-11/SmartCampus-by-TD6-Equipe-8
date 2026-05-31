@@ -18,19 +18,23 @@ function LoginPage({ onLogin }) {
   return (
     <div className="login-page">
       <div className="login-left">
-        <div className="login-logo">
-          <span className="login-logo-text">Smart<span>Campus</span></span>
+        <div className="login-left-text">
+          <div className="login-logo">
+            <span className="login-logo-text">Smart<span>Campus</span></span>
+          </div>
+          <div className="login-tagline">Gérer · Apprendre · Réussir</div>
+          <h1 className="login-headline">
+            La gestion académique<br /><em>de notre époque</em>
+          </h1>
+          <p className="login-desc">
+            Une plateforme centralisée pour les étudiants, enseignants
+            et l'administration. Accédez à vos cours, notes et emploi du temps
+            en quelques secondes.
+          </p>
+        </div>
+        <div className="login-left-image">
           <img src="assets/logo.webp" alt="SmartCampus" className="login-logo-img" />
         </div>
-        <div className="login-tagline">Gérer · Apprendre · Réussir</div>
-        <h1 className="login-headline">
-          La gestion académique<br /><em>de notre époque</em>
-        </h1>
-        <p className="login-desc">
-          Une plateforme centralisée pour les étudiants, enseignants
-          et l'administration. Accédez à vos cours, notes et emploi du temps
-          en quelques secondes.
-        </p>
       </div>
       <div className="login-right">
         <h2>Connexion</h2>

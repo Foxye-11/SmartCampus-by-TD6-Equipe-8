@@ -74,17 +74,26 @@ body {
 .login-left {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  gap: 48px;
   padding: 60px 80px;
   position: relative;
   z-index: 1;
+}
+.login-left-text {
+  flex: 1;
+  min-width: 0;
+}
+.login-left-image {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-logo {
   display: flex;
   align-items: center;
-  gap: 20px;
   font-family: var(--font-display);
   font-size: 2.4rem;
   color: var(--white);
@@ -93,11 +102,11 @@ body {
 }
 .login-logo-text span { color: var(--gold); }
 .login-logo-img {
-  width: 96px;
-  height: 96px;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
   object-fit: contain;
-  border-radius: 18px;
-  flex-shrink: 0;
+  border-radius: 28px;
 }
 
 .login-tagline {
